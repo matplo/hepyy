@@ -1,4 +1,4 @@
-# heppyyier
+# hepyy
 
 A local HEP C++ package manager that downloads, compiles, and exposes packages as Python
 modules via [cppyy](https://cppyy.readthedocs.io/) — no ROOT, no conda, no system-wide
@@ -28,14 +28,14 @@ brew install cmake swig
 
 ## Installation
 
-Create and activate a virtual environment, then install heppyyier:
+Create and activate a virtual environment, then install hepyy:
 
 > **Short aliases:** `heyy` and `her` are registered as identical entry points alongside
-> `heppyyier` — use whichever you prefer.
+> `hepyy` — use whichever you prefer.
 > ```bash
 > heyy install fastjet
 > her list
-> heppyyier config   # all three are the same CLI
+> hepyy config   # all three are the same CLI
 > ```
 
 ```bash
@@ -43,21 +43,21 @@ python -m venv myenv
 source myenv/bin/activate
 
 # From PyPI (once published):
-pip install heppyyier
+pip install hepyy
 
 # Or directly from GitHub (no clone needed):
-pip install git+https://github.com/matplo/heppyyier.git
+pip install git+https://github.com/matplo/hepyy.git
 
 # To update to the latest version (once inside an activated venv):
 heyy upgrade
 
 # Or manually with pip / uv:
-pip install --force-reinstall git+https://github.com/matplo/heppyyier.git
-uv pip install --reinstall git+https://github.com/matplo/heppyyier.git
+pip install --force-reinstall git+https://github.com/matplo/hepyy.git
+uv pip install --reinstall git+https://github.com/matplo/hepyy.git
 
 # Or from a local clone (editable install for development):
-git clone https://github.com/matplo/heppyyier
-cd heppyyier
+git clone https://github.com/matplo/hepyy
+cd hepyy
 pip install -e .
 ```
 
@@ -65,24 +65,24 @@ pip install -e .
 
 ## Google Colab
 
-heppyyier works in [Google Colab](https://colab.research.google.com) without any local setup.
+hepyy works in [Google Colab](https://colab.research.google.com) without any local setup.
 Use `!` to run shell commands from a notebook cell:
 
 ```python
-# Cell 1 — install heppyyier
-!pip install git+https://github.com/matplo/heppyyier.git
+# Cell 1 — install hepyy
+!pip install git+https://github.com/matplo/hepyy.git
 
 # Cell 2 — initialise (creates package store, patches cppyy)
-!heppyyier init
+!hepyy init
 
 # Cell 3 — build HEP packages (~10–20 min first time; Colab has 2+ cores)
-!heppyyier install fastjet hepmc3 lhapdf pythia8 fjcontrib --verbose
+!hepyy install fastjet hepmc3 lhapdf pythia8 fjcontrib --verbose
 
 # Cell 4 — use them
-import heppyyier
-heppyyier.load('fastjet')
-heppyyier.load('fjcontrib')
-heppyyier.load('pythia8')
+import hepyy
+hepyy.load('fastjet')
+hepyy.load('fjcontrib')
+hepyy.load('pythia8')
 
 import cppyy, pythia8, fastjet, fjcontrib
 # → ready to use
@@ -91,13 +91,13 @@ import cppyy, pythia8, fastjet, fjcontrib
 **Notes:**
 - Each Colab runtime is ephemeral — packages must be reinstalled when the runtime resets.
   The build takes ~10–20 min; consider saving the compiled packages to Google Drive and
-  registering them with `heppyyier register` to avoid rebuilding every session.
+  registering them with `hepyy register` to avoid rebuilding every session.
 - `--verbose` shows live build output, which is useful in Colab to confirm progress.
-- After `heppyyier init`, download the latest demo notebooks with:
+- After `hepyy init`, download the latest demo notebooks with:
   ```
-  !heppyyier demos
+  !hepyy demos
   ```
-  This fetches all demo files from GitHub into `./heppyyier_demos/`. Re-run after
+  This fetches all demo files from GitHub into `./hepyy_demos/`. Re-run after
   `heyy upgrade` to pick up new or updated demos.
 - See `demos/demo_softdrop_splitting.ipynb` for a complete worked example you can open
   directly in Colab.
@@ -109,15 +109,15 @@ import cppyy, pythia8, fastjet, fjcontrib
 Run once after installation to create the package store, fetch recipes, and check cppyy:
 
 ```bash
-heppyyier init
+hepyy init
 ```
 
 This creates the package store under your active venv and automatically clones the
-[heppyyier-recipes](https://github.com/matplo/heppyyier-recipes) repository so the
+[hepyy-recipes](https://github.com/matplo/hepyy-recipes) repository so the
 latest recipes are always available:
 
 ```
-<venv>/heppyyier_packages/
+<venv>/hepyy_packages/
   registry.json       ← installed package index
   src/                ← cached tarballs (safe to delete to free space)
   logs/               ← build logs
@@ -135,35 +135,35 @@ is missing), inspect and patch manually:
 
 ```bash
 # Inspect only:
-heppyyier fix-cppyy --check
+hepyy fix-cppyy --check
 
 # Patch:
-heppyyier fix-cppyy
+hepyy fix-cppyy
 ```
 
-To upgrade heppyyier itself to the latest GitHub version from inside an active venv:
+To upgrade hepyy itself to the latest GitHub version from inside an active venv:
 ```bash
-heppyyier upgrade
+hepyy upgrade
 ```
 This uses `uv pip install --reinstall` (or `pip --force-reinstall`) to bypass the
 package cache. Re-enter the subshell after upgrading to pick up new entry points.
 
 To refresh recipes at any time (e.g. after a new recipe is added upstream):
 ```bash
-heppyyier recipe update
+hepyy recipe update
 ```
 
 Check where your packages will be installed:
 ```bash
-heppyyier config
+hepyy config
 ```
 
 Override the location at any time:
 ```bash
 # Environment variable (shell session)
-export HEPPYYIER_PACKAGES_DIR=/opt/hep/packages
+export HEPYY_PACKAGES_DIR=/opt/hep/packages
 
-# Or permanently in .heppyyier.toml at your project root:
+# Or permanently in .hepyy.toml at your project root:
 # packages_dir = "/opt/hep/packages"
 ```
 
@@ -182,24 +182,24 @@ You can pass multiple package names to `install` and they are built **sequential
 order given** — which is all that is needed to satisfy the implicit Pythia8 dependencies:
 
 ```bash
-heppyyier install fastjet hepmc3 lhapdf pythia8 fjcontrib
+hepyy install fastjet hepmc3 lhapdf pythia8 fjcontrib
 ```
 
 Or one at a time:
 
 ```bash
-heppyyier install fastjet           # (1) jet finding
-heppyyier install hepmc3            # (2) event record I/O
-heppyyier install lhapdf            # (3) PDF sets
-heppyyier install pythia8           # (4) sees fastjet + hepmc3 + lhapdf → adds --with-* flags
-heppyyier install fjcontrib         # (5) jet substructure (hard-requires fastjet)
+hepyy install fastjet           # (1) jet finding
+hepyy install hepmc3            # (2) event record I/O
+hepyy install lhapdf            # (3) PDF sets
+hepyy install pythia8           # (4) sees fastjet + hepmc3 + lhapdf → adds --with-* flags
+hepyy install fjcontrib         # (5) jet substructure (hard-requires fastjet)
 ```
 
 During the Pythia8 build you will see which packages were detected:
 ```
-[pythia8] FastJet : .../heppyyier_packages/fastjet/3.5.1
-[pythia8] HepMC3  : .../heppyyier_packages/hepmc3/3.3.1
-[pythia8] LHAPDF6 : .../heppyyier_packages/lhapdf/6.5.4
+[pythia8] FastJet : .../hepyy_packages/fastjet/3.5.1
+[pythia8] HepMC3  : .../hepyy_packages/hepmc3/3.3.1
+[pythia8] LHAPDF6 : .../hepyy_packages/lhapdf/6.5.4
 [pythia8] configure: --with-fastjet3=... --with-hepmc3=... --with-lhapdf6=...
 ```
 
@@ -208,24 +208,24 @@ During the Pythia8 build you will see which packages were detected:
 The registry stores **one active entry per package name** — the last-installed version.
 If you install fastjet 3.4 and then fastjet 3.5, only 3.5 is visible to subsequent builds.
 To control which version Pythia8 sees, install (or `register`) the desired fastjet version
-**before** running `heppyyier install pythia8`.
+**before** running `hepyy install pythia8`.
 
 ### Useful flags
 
 ```bash
-heppyyier install fastjet --verbose          # show build output live
-heppyyier install fastjet --force            # re-extract and rebuild (keeps cached tarball)
-heppyyier install fastjet --redownload       # delete tarball and start completely fresh
-heppyyier install fastjet --clean            # wipe only build artifacts, keep extracted source
-heppyyier install fastjet -j 8              # use 8 parallel make jobs (overrides recipe default of 4)
+hepyy install fastjet --verbose          # show build output live
+hepyy install fastjet --force            # re-extract and rebuild (keeps cached tarball)
+hepyy install fastjet --redownload       # delete tarball and start completely fresh
+hepyy install fastjet --clean            # wipe only build artifacts, keep extracted source
+hepyy install fastjet -j 8              # use 8 parallel make jobs (overrides recipe default of 4)
 
 # Flags apply to all packages when multiple names are given:
-heppyyier install fastjet hepmc3 lhapdf pythia8 fjcontrib --verbose
-heppyyier install fastjet hepmc3 lhapdf pythia8 fjcontrib -j 8
+hepyy install fastjet hepmc3 lhapdf pythia8 fjcontrib --verbose
+hepyy install fastjet hepmc3 lhapdf pythia8 fjcontrib -j 8
 
 # --version and --recipe only take effect for a single-package install:
-heppyyier install fastjet --version 3.4.2
-heppyyier install mypackage --recipe /path/to/mypackage/1.0.yaml
+hepyy install fastjet --version 3.4.2
+hepyy install mypackage --recipe /path/to/mypackage/1.0.yaml
 ```
 
 `--clean` is useful on slow network mounts (e.g. Google Drive) where re-extracting
@@ -235,15 +235,15 @@ autotools packages, without touching the already-extracted source tree.
 ### Inspecting what is installed
 
 ```bash
-heppyyier list               # all installed packages with versions and prefixes
-heppyyier info fastjet       # full details for one package
+hepyy list               # all installed packages with versions and prefixes
+hepyy info fastjet       # full details for one package
 ```
 
 ---
 
 ## Using packages in Python
 
-### Loading with heppyyier
+### Loading with hepyy
 
 ```python
 # With the module system (recommended):
@@ -253,13 +253,13 @@ heppyyier info fastjet       # full details for one package
 import fastjet, pythia8, fjcontrib   # autoload hook has already set everything up
 
 # Without the module system (Colab, bare venv):
-import heppyyier
-heppyyier.load("fastjet")
-heppyyier.load("pythia8")
-heppyyier.load("fjcontrib")   # heppyyier.load() is a no-op if already loaded
+import hepyy
+hepyy.load("fastjet")
+hepyy.load("pythia8")
+hepyy.load("fjcontrib")   # hepyy.load() is a no-op if already loaded
 
 # Or pass a list — packages are loaded in order:
-heppyyier.load(["fastjet", "pythia8", "fjcontrib"])
+hepyy.load(["fastjet", "pythia8", "fjcontrib"])
 
 import fastjet, pythia8, fjcontrib
 
@@ -271,7 +271,7 @@ print(jet.pt())
 
 ### ROOT — PyROOT via native Python bindings
 
-ROOT is available via the [heppyyier-recipes](https://github.com/matplo/heppyyier-recipes)
+ROOT is available via the [hepyy-recipes](https://github.com/matplo/hepyy-recipes)
 repository (not built-in). Install and use it with:
 
 ```bash
@@ -280,30 +280,30 @@ heyy install root           # builds ROOT 6.40.00 (~30 min first time)
 ```
 
 ```python
-import heppyyier
-heppyyier.load("root")      # adds ROOT's lib/ to sys.path; does NOT import pip-cppyy
+import hepyy
+hepyy.load("root")      # adds ROOT's lib/ to sys.path; does NOT import pip-cppyy
 import ROOT
 h = ROOT.TH1F("h", "h", 100, 0, 100)
 h.Fill(42)
 ```
 
 **ROOT ships its own cppyy and cling** — a different build from the pip-installed cppyy
-that heppyyier uses for FastJet, Pythia8, etc. Because of this:
+that hepyy uses for FastJet, Pythia8, etc. Because of this:
 
-- `heppyyier.load("root")` only adds ROOT's `lib/` directory to `sys.path`; it does
+- `hepyy.load("root")` only adds ROOT's `lib/` directory to `sys.path`; it does
   **not** import pip-cppyy. ROOT's `_facade.py` then finds ROOT's own `cppyy` package
   (also in `lib/`) and initialises correctly.
 - **Mixing ROOT and pip-cppyy packages in the same session works for typical HEP
   workflows** (generate/cluster with fastjet or pythia8, fill ROOT histograms) in
   ROOT 6.28+. The risk arises when passing C++ objects *across* the two cling contexts —
   e.g. handing a `fastjet::PseudoJet*` directly to a ROOT-compiled function.
-- With `module load`, the auto-load hook handles `heppyyier.load()` automatically so
+- With `module load`, the auto-load hook handles `hepyy.load()` automatically so
   your script can go straight to `import fastjet; import ROOT`.
 - Recommended patterns:
 
   ```python
   # Pattern A — ROOT only session
-  import ROOT   # module load root handles heppyyier.load('root') automatically
+  import ROOT   # module load root handles hepyy.load('root') automatically
 
   # Pattern B — cppyy packages only session (module load fastjet pythia8)
   import fastjet, pythia8
@@ -316,28 +316,28 @@ that heppyyier uses for FastJet, Pythia8, etc. Because of this:
 
   # Pattern C — ROOT owns cling, other libs loaded via ROOT's own interface
   import ROOT
-  heppyyier.gSystem_load('fastjet')   # no pip-cppyy involved at all
-  heppyyier.gSystem_load('pythia8')
+  hepyy.gSystem_load('fastjet')   # no pip-cppyy involved at all
+  hepyy.gSystem_load('pythia8')
   p = ROOT.Pythia8.Pythia()
   j = ROOT.fastjet.PseudoJet(1, 0, 1, 1.4)
   ```
 
-`heppyyier.gSystem_load(name)` looks up the installed library path from the registry
+`hepyy.gSystem_load(name)` looks up the installed library path from the registry
 and calls `ROOT.gSystem.Load()` for you — no hardcoded paths needed.
 
-heppyyier emits a `UserWarning` when ROOT and cppyy packages are loaded in the same
+hepyy emits a `UserWarning` when ROOT and cppyy packages are loaded in the same
 session so the potential conflict is visible at runtime.
 
 > **`module load root` with the auto-load hook:** when ROOT is among the module-loaded
-> packages, heppyyier loads it first so ROOT's `lib/` is in `sys.path` before the first
+> packages, hepyy loads it first so ROOT's `lib/` is in `sys.path` before the first
 > `import cppyy`. ROOT's bundled cppyy is then used for all packages — one cling for
-> everything. If ROOT is *not* module-loaded, heppyyier strips ROOT's `lib/` from
+> everything. If ROOT is *not* module-loaded, hepyy strips ROOT's `lib/` from
 > `DYLD_LIBRARY_PATH` before loading pip-cppyy to prevent ROOT's `libcling.dylib` from
 > shadowing cppyy_backend's own cling.
 
 > **HPC systems with GCC 14+ (NERSC Perlmutter, etc.):** pip-cppyy ships a
 > pre-built cling 16 that is incompatible with GCC 14 system headers — the PCH
-> build fails and cppyy crashes. **Installing ROOT via heppyyier is the recommended
+> build fails and cppyy crashes. **Installing ROOT via hepyy is the recommended
 > fix**: ROOT builds its own cling with the system's compiler, so on a GCC 14 system
 > ROOT's cling is GCC 14 compatible. Loading ROOT first makes fastjet, pythia8, and
 > all other packages share ROOT's cling instead of pip-cppyy's broken one.
@@ -348,14 +348,14 @@ session so the potential conflict is visible at runtime.
 > ```
 >
 > ```python
-> import heppyyier
-> heppyyier.load('root')         # ROOT's cling — GCC 14 compatible, no PCH issues
-> heppyyier.load('fastjet')
-> heppyyier.load('pythia8')
+> import hepyy
+> hepyy.load('root')         # ROOT's cling — GCC 14 compatible, no PCH issues
+> hepyy.load('fastjet')
+> hepyy.load('pythia8')
 > import ROOT, fastjet, pythia8  # all share ROOT's cling
 > ```
 >
-> With `module load`, listing `root` is enough — heppyyier loads it first automatically:
+> With `module load`, listing `root` is enough — hepyy loads it first automatically:
 > ```bash
 > module load root fastjet pythia8
 > python script.py               # fastjet and pythia8 use ROOT's cling
@@ -363,8 +363,8 @@ session so the potential conflict is visible at runtime.
 
 ### LHAPDF — native Python bindings
 
-LHAPDF is built with SWIG Python bindings. After `heppyyier install lhapdf` the module
-is installed directly into your venv — **no `heppyyier.load()` needed**:
+LHAPDF is built with SWIG Python bindings. After `hepyy install lhapdf` the module
+is installed directly into your venv — **no `hepyy.load()` needed**:
 
 ```python
 import lhapdf                          # works straight away
@@ -376,7 +376,7 @@ print(f"xg(x=0.01, Q=Mz) = {xg:.4f}")
 For C++ interop (passing `LHAPDF::PDF*` to other cppyy-loaded code):
 
 ```python
-heppyyier.load("lhapdf")               # loads the C++ library via cppyy
+hepyy.load("lhapdf")               # loads the C++ library via cppyy
 import cppyy
 pdf = cppyy.gbl.LHAPDF.mkPDF("CT10nlo", 0)
 ```
@@ -410,14 +410,14 @@ export LHAPDF_DATA_PATH=/data/pdfsets:$LHAPDF_DATA_PATH
 
 > **Without `module load`:** use the full path directly:
 > ```bash
-> $(heppyyier info lhapdf | awk '/^prefix/{print $2}')/bin/lhapdf install CT10nlo
+> $(hepyy info lhapdf | awk '/^prefix/{print $2}')/bin/lhapdf install CT10nlo
 > ```
 
 ---
 
 ## Shell completion
 
-Enable tab completion for `heyy`, `her`, and `heppyyier` in one line.
+Enable tab completion for `heyy`, `her`, and `hepyy` in one line.
 
 **Zsh** — add to `~/.zshrc`:
 ```zsh
@@ -456,11 +456,11 @@ heyy completion --shell bash
 
 ### TCL modulefiles (Lmod / Environment Modules)
 
-If your site uses Lmod or Environment Modules, heppyyier can generate standard TCL
+If your site uses Lmod or Environment Modules, hepyy can generate standard TCL
 modulefiles for all installed packages:
 
 ```bash
-heppyyier generate-modules        # write/refresh modulefiles for all installed packages
+hepyy generate-modules        # write/refresh modulefiles for all installed packages
 ```
 
 Modulefiles are written to `<packages_dir>/modulefiles/<name>/<version>` and include
@@ -470,8 +470,8 @@ bindings), and `CPATH`. Re-run after installing new packages to keep them up to 
 To add the directory to your active module search path:
 
 ```bash
-eval "$(heppyyier modules)"       # runs: module use <packages_dir>/modulefiles
-heppyyier modules-path            # print the modulefiles path only (no 'module use' prefix)
+eval "$(hepyy modules)"       # runs: module use <packages_dir>/modulefiles
+hepyy modules-path            # print the modulefiles path only (no 'module use' prefix)
 ```
 
 After that, standard `module` commands work as usual:
@@ -482,15 +482,15 @@ module load jewel/2.4.0
 module list
 ```
 
-> **Tip:** add `eval "$(heppyyier modules)"` to your `~/.bashrc` / `~/.zshrc` so the
+> **Tip:** add `eval "$(hepyy modules)"` to your `~/.bashrc` / `~/.zshrc` so the
 > modulefiles directory is always in the search path.
 
 ### Python auto-load via `module load`
 
-`heyy generate-modules` installs a `heppyyier_autoload.pth` file into the venv's
+`heyy generate-modules` installs a `hepyy_autoload.pth` file into the venv's
 `site-packages`. Python processes `.pth` files at startup, so any package loaded
 with `module load` before starting Python is available to import directly — no
-`heppyyier.load()` call needed:
+`hepyy.load()` call needed:
 
 ```bash
 eval "$(heyy modules)"            # register modulefiles dir (once, or in ~/.bashrc)
@@ -506,13 +506,13 @@ For Jupyter notebooks or scripts that run without `module load`, the explicit ca
 still works as before:
 
 ```python
-import heppyyier
-heppyyier.load("fastjet")
+import hepyy
+hepyy.load("fastjet")
 import fastjet
 ```
 
-> **Note:** the `.pth` hook imports `heppyyier` at Python startup when any
-> `HEPPYYIER_LOADED_*` env var is set. When no modules are loaded the check is
+> **Note:** the `.pth` hook imports `hepyy` at Python startup when any
+> `HEPYY_LOADED_*` env var is set. When no modules are loaded the check is
 > a single `any()` scan of `os.environ` — effectively free.
 
 ---
@@ -529,17 +529,17 @@ Demo scripts live in the `demos/` directory:
 | `demos/demo_pythia_fastjet_root.py` | Pythia8 + FastJet → ROOT TTree ntuple written to a .root file (requires root) |
 | `demos/demo_fjcontrib.py` | SoftDrop, Nsubjettiness τ₂₁, EnergyCorrelator C₂ on Pythia8 dijets |
 | `demos/demo_fjcontrib.ipynb` | Same as above in a Jupyter notebook with per-jet inspector table |
-| `demos/demo_softdrop_splitting.ipynb` | SoftDrop splitting function: $z_g$ and $\theta_g$ distributions ([open in Colab](https://colab.research.google.com/github/matplo/heppyyier/blob/main/demos/demo_softdrop_splitting.ipynb)) |
+| `demos/demo_softdrop_splitting.ipynb` | SoftDrop splitting function: $z_g$ and $\theta_g$ distributions ([open in Colab](https://colab.research.google.com/github/matplo/hepyy/blob/main/demos/demo_softdrop_splitting.ipynb)) |
 
 Run:
 ```bash
-heppyyier install fastjet pythia8 fjcontrib   # first time only
+hepyy install fastjet pythia8 fjcontrib   # first time only
 python demos/demo_fjcontrib.py
 ```
 
 To get the latest demos after an upgrade (demos are not part of the installed package):
 ```bash
-heyy demos                # downloads all demos into ./heppyyier_demos/
+heyy demos                # downloads all demos into ./hepyy_demos/
 heyy demos --overwrite    # re-download even if files already exist
 ```
 
@@ -550,7 +550,7 @@ heyy kernel install               # register the venv as a selectable kernel
 jupyter notebook demos/demo_fjcontrib.ipynb
 ```
 
-Select the `HEP (...)` kernel when prompted, or use `--kernel heppyyier-<venv>` on the
+Select the `HEP (...)` kernel when prompted, or use `--kernel hepyy-<venv>` on the
 command line. After installing more packages, run `heyy kernel update` to refresh the
 kernel spec. See the [Jupyter kernel](#jupyter-kernel) section for full options.
 
@@ -567,21 +567,21 @@ heyy kernel install
 ```
 
 The kernel spec embeds `PATH`, `DYLD_LIBRARY_PATH`/`LD_LIBRARY_PATH`, `PYTHONPATH`, and
-`HEPPYYIER_PACKAGES_DIR` for every installed package, so notebooks can immediately do:
+`HEPYY_PACKAGES_DIR` for every installed package, so notebooks can immediately do:
 
 ```python
-import heppyyier
-heppyyier.load("fastjet")
+import hepyy
+hepyy.load("fastjet")
 
 import lhapdf          # works directly — PYTHONPATH is already set
 ```
 
 ### Kernel naming and multiple environments
 
-Each venv gets an automatically distinct kernel name: **`heppyyier-<venv-name>`**. If you
+Each venv gets an automatically distinct kernel name: **`hepyy-<venv-name>`**. If you
 maintain separate environments for different projects — say `henv-fastjet` and
 `henv-pythia` — running `heyy kernel install` from inside each one produces
-`heppyyier-henv-fastjet` and `heppyyier-henv-pythia` as separate kernels with no extra
+`hepyy-henv-fastjet` and `hepyy-henv-pythia` as separate kernels with no extra
 flags. You only need `--name` if you want something more descriptive than the venv
 directory name.
 
@@ -602,7 +602,7 @@ After `heyy install <pkg>`, refresh the kernel to pick up the new paths:
 
 ```bash
 heyy kernel update              # refresh current venv's kernel
-heyy kernel update heppyyier-henv-dev   # refresh a named kernel
+heyy kernel update hepyy-henv-dev   # refresh a named kernel
 ```
 
 `kernel update` is equivalent to re-running `kernel install` with the same name, but
@@ -612,26 +612,26 @@ rather than silently creating one.
 ### Listing and removing kernels
 
 ```bash
-heyy kernel list                         # show all heppyyier-managed kernels
-heyy kernel uninstall heppyyier-henv-dev # remove one (name from 'kernel list')
+heyy kernel list                         # show all hepyy-managed kernels
+heyy kernel uninstall hepyy-henv-dev # remove one (name from 'kernel list')
 ```
 
-`kernel list` shows only kernels created by heppyyier (identified by metadata written at
-install time). `kernel uninstall` refuses to touch kernels not managed by heppyyier.
+`kernel list` shows only kernels created by hepyy (identified by metadata written at
+install time). `kernel uninstall` refuses to touch kernels not managed by hepyy.
 
 ---
 
 ## Shared packages on a cluster
 
 On an HPC cluster a single set of precompiled packages can be shared across
-user accounts. No one else needs to rebuild — they just point heppyyier at the
+user accounts. No one else needs to rebuild — they just point hepyy at the
 shared directory and generate their own kernel spec.
 
 ### Option 1 — shared filesystem (NFS, GPFS, Lustre, …)
 
 **Admin / package builder** (once):
 ```bash
-export HEPPYYIER_PACKAGES_DIR=/shared/hep/packages
+export HEPYY_PACKAGES_DIR=/shared/hep/packages
 heyy init
 heyy install fastjet hepmc3 lhapdf pythia8 fjcontrib
 heyy generate-modules   # optional: write Lmod/TCL modulefiles into the same tree
@@ -639,19 +639,19 @@ heyy generate-modules   # optional: write Lmod/TCL modulefiles into the same tre
 
 **Each user** (no compilation needed):
 ```bash
-export HEPPYYIER_PACKAGES_DIR=/shared/hep/packages
+export HEPYY_PACKAGES_DIR=/shared/hep/packages
 heyy kernel install          # writes a personal kernel.json pointing at the shared packages
 ```
 
 Then in a notebook or script:
 ```python
-import heppyyier
-heppyyier.load('fastjet')
-heppyyier.load('pythia8')
+import hepyy
+hepyy.load('fastjet')
+hepyy.load('pythia8')
 import fastjet, pythia8   # ready — no build, no wait
 ```
 
-> **Tip:** add `export HEPPYYIER_PACKAGES_DIR=/shared/hep/packages` to
+> **Tip:** add `export HEPYY_PACKAGES_DIR=/shared/hep/packages` to
 > `~/.bashrc` / `~/.bash_profile`, or set it from your site's module system,
 > so it is always active.
 
@@ -659,9 +659,9 @@ Each user's `heyy kernel install` creates a `kernel.json` in their own
 `~/.local/share/jupyter/kernels/` that references the shared packages. The
 packages themselves are never copied. To manage kernels:
 ```bash
-heyy kernel list                         # show heppyyier-managed kernels
+heyy kernel list                         # show hepyy-managed kernels
 heyy kernel update                       # refresh after the admin installs new packages
-heyy kernel uninstall heppyyier-myenv    # remove (name from 'kernel list')
+heyy kernel uninstall hepyy-myenv    # remove (name from 'kernel list')
 ```
 
 ### Option 2 — packages built by another tool
@@ -669,7 +669,7 @@ heyy kernel uninstall heppyyier-myenv    # remove (name from 'kernel list')
 If your packages were compiled by [yasp](https://github.com/matplo/yasp) or
 another build system, register them without rebuilding:
 ```bash
-export HEPPYYIER_PACKAGES_DIR=/shared/hep/packages
+export HEPYY_PACKAGES_DIR=/shared/hep/packages
 heyy register fastjet --prefix /path/to/fastjet/3.5.1 --version 3.5.1
 heyy register pythia8 --prefix /path/to/pythia8/8.317  --version 8.317
 heyy kernel install   # now embeds the registered prefixes
@@ -686,7 +686,7 @@ Unpack on the target machine (OS and Python version must be compatible):
 ```bash
 mkdir -p ~/.henvs/default
 tar -xzf hep-packages.tar.gz -C ~/.henvs/default
-export HEPPYYIER_PACKAGES_DIR=~/.henvs/default
+export HEPYY_PACKAGES_DIR=~/.henvs/default
 heyy kernel install
 ```
 
@@ -697,46 +697,46 @@ heyy kernel install
 If you already have a package built by another tool (e.g. [yasp](https://github.com/matplo/yasp)):
 
 ```bash
-heppyyier register fastjet --prefix /path/to/fastjet/3.5.1
-heppyyier register fastjet --prefix /path/to/fastjet/3.5.1 --version 3.5.1
+hepyy register fastjet --prefix /path/to/fastjet/3.5.1
+hepyy register fastjet --prefix /path/to/fastjet/3.5.1 --version 3.5.1
 ```
 
 ---
 
 ## External recipe sources
 
-heppyyier ships built-in recipes for FastJet, HepMC3, LHAPDF6, Pythia8, and fjcontrib.
+hepyy ships built-in recipes for FastJet, HepMC3, LHAPDF6, Pythia8, and fjcontrib.
 You can extend this with recipes from a GitHub repository or use a one-off recipe file
 from anywhere on disk.
 
 ### GitHub recipe source
 
-The [matplo/heppyyier-recipes](https://github.com/matplo/heppyyier-recipes) repository
-is registered automatically by `heppyyier init`. You can add further repos the same way:
+The [matplo/hepyy-recipes](https://github.com/matplo/hepyy-recipes) repository
+is registered automatically by `hepyy init`. You can add further repos the same way:
 
-Point heppyyier at a GitHub repo and it will clone it locally and search it automatically
+Point hepyy at a GitHub repo and it will clone it locally and search it automatically
 on every `install` and `avail` call:
 
 ```bash
 # Whole repo (recipes expected at <name>/<version>.yaml under the root)
-heppyyier recipe add https://github.com/user/my-hep-recipes
+hepyy recipe add https://github.com/user/my-hep-recipes
 
 # Subdirectory of a repo
-heppyyier recipe add https://github.com/matplo/yasp/tree/main/recipes
+hepyy recipe add https://github.com/matplo/yasp/tree/main/recipes
 ```
 
 Manage sources:
 ```bash
-heppyyier recipe list-sources    # show all registered sources
-heppyyier recipe update          # git pull on all sources (refresh)
-heppyyier recipe remove https://github.com/user/my-hep-recipes
+hepyy recipe list-sources    # show all registered sources
+hepyy recipe update          # git pull on all sources (refresh)
+hepyy recipe remove https://github.com/user/my-hep-recipes
 ```
 
-Once added, packages from that source appear in `heppyyier avail` and can be installed
+Once added, packages from that source appear in `hepyy avail` and can be installed
 by name like any built-in:
 ```bash
-heppyyier avail                  # shows built-in + remote recipes
-heppyyier install mypackage      # finds recipe in remote source automatically
+hepyy avail                  # shows built-in + remote recipes
+hepyy install mypackage      # finds recipe in remote source automatically
 ```
 
 ### One-off recipe file
@@ -744,7 +744,7 @@ heppyyier install mypackage      # finds recipe in remote source automatically
 To use a single recipe file without registering a source:
 
 ```bash
-heppyyier install mypackage --recipe /path/to/mypackage/1.0.yaml
+hepyy install mypackage --recipe /path/to/mypackage/1.0.yaml
 ```
 
 The `--recipe` flag accepts any absolute or relative path and overrides the built-in
@@ -762,12 +762,12 @@ my-recipes/
     2.0.yaml
 ```
 
-See the built-in recipes under `src/heppyyier/recipes/` for the full format reference.
+See the built-in recipes under `src/hepyy/recipes/` for the full format reference.
 
 ### VCS-based recipes (git / svn)
 
 If a package has no tarball (e.g. SVN-only like POWHEG, or a rolling git branch), omit
-the `url` field. heppyyier will skip the download step and run `build_script` directly
+the `url` field. hepyy will skip the download step and run `build_script` directly
 from an empty working directory — the script is responsible for fetching its own source:
 
 ```yaml
@@ -803,9 +803,9 @@ and `{<name>_prefix}` for every package currently in the registry.
 
 | Method | Key | Example |
 |--------|-----|---------|
-| Env var | `HEPPYYIER_PACKAGES_DIR` | `export HEPPYYIER_PACKAGES_DIR=/opt/hep` |
-| `.heppyyier.toml` | `packages_dir` | `packages_dir = "/opt/hep"` |
-| Default (venv) | — | `<venv>/heppyyier_packages/` |
+| Env var | `HEPYY_PACKAGES_DIR` | `export HEPYY_PACKAGES_DIR=/opt/hep` |
+| `.hepyy.toml` | `packages_dir` | `packages_dir = "/opt/hep"` |
+| Default (venv) | — | `<venv>/hepyy_packages/` |
 | Default (no venv) | — | `./packages/` |
 
-Legacy env var `HEPPYYIER_BUILD_DIR` and toml key `build_dir` are still accepted.
+Legacy env var `HEPYY_BUILD_DIR` and toml key `build_dir` are still accepted.

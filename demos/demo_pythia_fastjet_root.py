@@ -21,7 +21,7 @@ Read back with ROOT or uproot:
 # Packages must be loaded before running. Either:
 #   module load fastjet pythia8   # autoload hook handles the rest
 # or uncomment:
-#   import heppyyier; heppyyier.load("fastjet"); heppyyier.load("pythia8")
+#   import hepyy; hepyy.load("fastjet"); hepyy.load("pythia8")
 import cppyy
 import pythia8
 import fastjet

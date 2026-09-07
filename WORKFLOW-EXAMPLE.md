@@ -1,4 +1,4 @@
-# heppyyier — workflow examples
+# hepyy — workflow examples
 
 Quick-reference for the most common setups. Jump to the section that matches your situation.
 
@@ -6,20 +6,20 @@ Quick-reference for the most common setups. Jump to the section that matches you
 
 ## Prerequisites
 
-### heppyyier
+### hepyy
 
 Install into any Python virtual environment:
 
 ```bash
-pip install git+https://github.com/matplo/heppyyier.git
+pip install git+https://github.com/matplo/hepyy.git
 ```
 
 ### henv (recommended)
 
 [henv](https://github.com/matplo/henv) is a single-script virtual environment manager
-designed for heppyyier workflows. It creates and activates venvs, installs heppyyier
+designed for hepyy workflows. It creates and activates venvs, installs hepyy
 on first use, wires up tab completion, regenerates modulefiles, and handles
-`HEPPYYIER_PACKAGES_DIR` / `HEPPYYIER_SYSTEM_PACKAGES_DIR` automatically.
+`HEPYY_PACKAGES_DIR` / `HEPYY_SYSTEM_PACKAGES_DIR` automatically.
 
 Install once (requires `curl`):
 
@@ -38,12 +38,12 @@ Verify:
 henv --version
 ```
 
-henv is optional — all heppyyier commands work in any plain venv. The workflows below
+henv is optional — all hepyy commands work in any plain venv. The workflows below
 use `henv .` for convenience, but any `henv` call can be replaced with:
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install git+https://github.com/matplo/heppyyier.git
+pip install git+https://github.com/matplo/hepyy.git
 heyy init
 ```
 
@@ -54,9 +54,9 @@ heyy init
 The default setup — packages live inside your venv, nothing shared.
 
 ```bash
-# One-time: create a venv and install heppyyier
+# One-time: create a venv and install hepyy
 pip install henv        # or: curl … ~/.local/bin/henv
-henv .                  # create .venv in current dir, install heppyyier, drop in
+henv .                  # create .venv in current dir, install hepyy, drop in
 
 # Build packages (inside the henv subshell):
 heyy install fastjet hepmc3 lhapdf pythia8 fjcontrib
@@ -65,9 +65,9 @@ heyy install fastjet hepmc3 lhapdf pythia8 fjcontrib
 python my_analysis.py   # if you used 'module load' in the subshell
 # or explicitly:
 python -c "
-import heppyyier
-heppyyier.load('fastjet')
-heppyyier.load('pythia8')
+import hepyy
+hepyy.load('fastjet')
+hepyy.load('pythia8')
 import fastjet, pythia8
 print(fastjet.PseudoJet(1,0,1,1.4).pt())
 "
@@ -94,29 +94,29 @@ You own the Drive folder — read and write go to the same place.
 
 ```python
 # ── Cell 1: always run ─────────────────────────────────────────────────────
-!pip install git+https://github.com/matplo/heppyyier.git -q
+!pip install git+https://github.com/matplo/hepyy.git -q
 
 from google.colab import drive
 drive.mount('/content/drive')
 
 import os
-os.environ["HEPPYYIER_PACKAGES_DIR"] = "/content/drive/MyDrive/hep_packages"
+os.environ["HEPYY_PACKAGES_DIR"] = "/content/drive/MyDrive/hep_packages"
 
 # ── Cell 2: build once, then comment out for future sessions ───────────────
 # !heyy init
 # !heyy install fastjet hepmc3 lhapdf pythia8 fjcontrib --verbose
 
 # ── Cell 3: every session ──────────────────────────────────────────────────
-import heppyyier
-heppyyier.load("fastjet")
-heppyyier.load("pythia8")
+import hepyy
+hepyy.load("fastjet")
+hepyy.load("pythia8")
 import fastjet, pythia8
 ```
 
 ### 2b. Shared folder (course / team)
 
 An instructor or admin pre-builds packages to a Google Drive folder and shares
-it. `HEPPYYIER_SYSTEM_PACKAGES_DIR` is just a filesystem path — it can point at:
+it. `HEPYY_SYSTEM_PACKAGES_DIR` is just a filesystem path — it can point at:
 
 - A folder shared with you (add a shortcut so it appears under `MyDrive/`)
 - A Team Drive / Shared Drive
@@ -125,7 +125,7 @@ it. `HEPPYYIER_SYSTEM_PACKAGES_DIR` is just a filesystem path — it can point a
 Students set the shared folder as the read-only system base and write any
 personal additions to a local (session-only) path.
 
-> **Important:** mount Google Drive **before** calling `heppyyier.load()`.
+> **Important:** mount Google Drive **before** calling `hepyy.load()`.
 > The package registry and C++ headers are read from Drive at load time — if
 > Drive isn't mounted yet, headers can't be included and the proxy module will
 > be created but attribute access will fail silently.
@@ -134,34 +134,34 @@ personal additions to a local (session-only) path.
 # ── Cell 1: always run ─────────────────────────────────────────────────────
 # Use pip (not uv pip) — uv installs headers to a non-standard path that
 # breaks cppyy's CPyCppyy API lookup, silently corrupting C++ namespace bindings.
-!pip install git+https://github.com/matplo/heppyyier.git -q
+!pip install git+https://github.com/matplo/hepyy.git -q
 
-# Mount Drive FIRST — heppyyier reads headers and registry from Drive at load time.
-# If Drive isn't mounted before heppyyier.load(), C++ headers can't be included
+# Mount Drive FIRST — hepyy reads headers and registry from Drive at load time.
+# If Drive isn't mounted before hepyy.load(), C++ headers can't be included
 # and the proxy module will be created but every attribute access will fail.
 from google.colab import drive
 drive.mount('/content/drive')
 
 import os
 # Shared pre-built packages — adjust path to wherever the instructor shared the folder
-os.environ["HEPPYYIER_SYSTEM_PACKAGES_DIR"] = \
+os.environ["HEPYY_SYSTEM_PACKAGES_DIR"] = \
     "/content/drive/MyDrive/HEPcourse_packages"   # shared folder shortcut in My Drive
 # Personal writable store — local to this session (lost on runtime reset, that's fine)
-os.environ["HEPPYYIER_PACKAGES_DIR"] = "/content/hep_packages_user"
+os.environ["HEPYY_PACKAGES_DIR"] = "/content/hep_packages_user"
 
 # ── Cell 2: instructor only — build once and share ─────────────────────────
 # Run this cell once from the instructor's account, then comment it out.
 # cppyy does NOT need to be in the shared prefix — students pip-install it above.
 # import os
-# os.environ["HEPPYYIER_PACKAGES_DIR"] = "/content/drive/MyDrive/HEPcourse_packages"
+# os.environ["HEPYY_PACKAGES_DIR"] = "/content/drive/MyDrive/HEPcourse_packages"
 # !heyy upgrade && heyy recipe update
 # !heyy install fastjet hepmc3 lhapdf pythia8 fjcontrib --verbose
 # !heyy generate-modules
 
 # ── Cell 3: every session (students) ───────────────────────────────────────
-import heppyyier
-heppyyier.load("fastjet")
-heppyyier.load("pythia8")
+import hepyy
+hepyy.load("fastjet")
+hepyy.load("pythia8")
 import fastjet, pythia8
 ```
 
@@ -177,9 +177,9 @@ Packages in your own directory; no sharing, no special flags.
 
 ```bash
 # Set a persistent location (add to ~/.bashrc):
-export HEPPYYIER_PACKAGES_DIR=$HOME/.heppyyier_packages
+export HEPYY_PACKAGES_DIR=$HOME/.hepyy_packages
 
-# Create and enter a venv (henv auto-detects HEPPYYIER_PACKAGES_DIR):
+# Create and enter a venv (henv auto-detects HEPYY_PACKAGES_DIR):
 henv .
 
 # Build packages (first time; cppyy may take 30-90 min on NERSC):
@@ -209,8 +209,8 @@ without any compilation.
 
 ### Admin (once):
 ```bash
-export HEPPYYIER_PACKAGES_DIR=/global/cfs/cdirs/myproject/hep_packages
-henv --packages-dir $HEPPYYIER_PACKAGES_DIR .
+export HEPYY_PACKAGES_DIR=/global/cfs/cdirs/myproject/hep_packages
+henv --packages-dir $HEPYY_PACKAGES_DIR .
 heyy install fastjet hepmc3 lhapdf pythia8 fjcontrib
 heyy install cppyy --force       # source build with system GCC
 heyy generate-modules            # write modulefiles into the same tree
@@ -218,17 +218,17 @@ heyy generate-modules            # write modulefiles into the same tree
 
 ### Each user (no compilation):
 ```bash
-# HEPPYYIER_SYSTEM_PACKAGES_DIR = shared read-only base (admin's packages)
-# HEPPYYIER_PACKAGES_DIR        = user's own writable store (default: inside venv)
+# HEPYY_SYSTEM_PACKAGES_DIR = shared read-only base (admin's packages)
+# HEPYY_PACKAGES_DIR        = user's own writable store (default: inside venv)
 
 # First time — specify the shared dir explicitly.
 # --no-cppyy removes the binary pip-cppyy wheel; the system source-built cppyy
-# is picked up automatically via HEPPYYIER_SYSTEM_PACKAGES_DIR.
+# is picked up automatically via HEPYY_SYSTEM_PACKAGES_DIR.
 # If the admin has already built cppyy with 'heyy install cppyy --force',
 # --no-cppyy is applied automatically (no flag needed).
 henv --system-packages-dir /global/cfs/cdirs/myproject/hep_packages --no-cppyy .
 # heyy list         shows shared packages
-# heyy install pkg  writes to .venv/heppyyier_packages/ — never touches the shared dir
+# heyy install pkg  writes to .venv/hepyy_packages/ — never touches the shared dir
 module load fastjet pythia8
 python analysis.py
 ```
@@ -236,23 +236,23 @@ python analysis.py
 To avoid repeating the flag on every `henv .`, persist it in one of these ways:
 
 ```bash
-# Option A — per-project (.heppyyier.toml in the analysis directory):
-echo 'system_packages_dir = "/global/cfs/cdirs/myproject/hep_packages"' >> .heppyyier.toml
+# Option A — per-project (.hepyy.toml in the analysis directory):
+echo 'system_packages_dir = "/global/cfs/cdirs/myproject/hep_packages"' >> .hepyy.toml
 henv .   # picks it up automatically from the TOML file
 
 # Option B — per-user (add to ~/.bashrc or site module system):
-echo 'export HEPPYYIER_SYSTEM_PACKAGES_DIR=/global/cfs/cdirs/myproject/hep_packages' >> ~/.bashrc
+echo 'export HEPYY_SYSTEM_PACKAGES_DIR=/global/cfs/cdirs/myproject/hep_packages' >> ~/.bashrc
 # henv inherits the env var from the parent shell — no flag needed
 henv .
 ```
 
 # Register a personal Jupyter kernel pointing at the shared packages:
-export HEPPYYIER_SYSTEM_PACKAGES_DIR=/global/cfs/cdirs/myproject/hep_packages
+export HEPYY_SYSTEM_PACKAGES_DIR=/global/cfs/cdirs/myproject/hep_packages
 heyy kernel install
 
 # Without henv (plain venv activation):
 source .venv/bin/activate
-export HEPPYYIER_SYSTEM_PACKAGES_DIR=/global/cfs/cdirs/myproject/hep_packages
+export HEPYY_SYSTEM_PACKAGES_DIR=/global/cfs/cdirs/myproject/hep_packages
 eval "$(heyy modules)"
 module load fastjet pythia8
 python analysis.py
@@ -267,7 +267,7 @@ their own directory without affecting anyone else.
 
 ### Admin (once):
 ```bash
-export HEPPYYIER_PACKAGES_DIR=/shared/hep/packages
+export HEPYY_PACKAGES_DIR=/shared/hep/packages
 heyy install fastjet hepmc3 lhapdf pythia8 fjcontrib cppyy --force
 heyy generate-modules
 ```
@@ -276,21 +276,21 @@ heyy generate-modules
 ```bash
 # My own writable dir (default: inside venv)
 # Shared read-only base from admin
-export HEPPYYIER_SYSTEM_PACKAGES_DIR=/shared/hep/packages
+export HEPYY_SYSTEM_PACKAGES_DIR=/shared/hep/packages
 
 henv --system-packages-dir /shared/hep/packages .
 # Inside the subshell:
-#   HEPPYYIER_PACKAGES_DIR  = .venv/heppyyier_packages/  (writable, user-local)
-#   HEPPYYIER_SYSTEM_PACKAGES_DIR = /shared/hep/packages  (read-only)
+#   HEPYY_PACKAGES_DIR  = .venv/hepyy_packages/  (writable, user-local)
+#   HEPYY_SYSTEM_PACKAGES_DIR = /shared/hep/packages  (read-only)
 
 heyy list               # shows shared packages as if they were locally installed
-heyy install myprivatelib   # goes to .venv/heppyyier_packages/ only
-python -c "import heppyyier; heppyyier.load('fastjet')"  # resolves from shared
+heyy install myprivatelib   # goes to .venv/hepyy_packages/ only
+python -c "import hepyy; hepyy.load('fastjet')"  # resolves from shared
 ```
 
-Or configure permanently in `.heppyyier.toml` at the project root:
+Or configure permanently in `.hepyy.toml` at the project root:
 ```toml
-# .heppyyier.toml
+# .hepyy.toml
 system_packages_dir = "/shared/hep/packages"
 ```
 `henv .` will then pick this up automatically on every activation.
@@ -304,18 +304,18 @@ Register a kernel so notebooks can use all installed packages without any
 
 ```bash
 pip install ipykernel
-heyy kernel install                     # default name: heppyyier-<venv>
+heyy kernel install                     # default name: hepyy-<venv>
 heyy kernel install --display-name "HEP 2026"   # custom label in JupyterHub UI
 heyy kernel install --sys-prefix        # install for all users on a JupyterHub
 ```
 
 The kernel spec embeds `PATH`, `LD_LIBRARY_PATH`, `PYTHONPATH`, and
-`HEPPYYIER_PACKAGES_DIR` for every installed package. In a notebook cell:
+`HEPYY_PACKAGES_DIR` for every installed package. In a notebook cell:
 
 ```python
-import heppyyier
-heppyyier.load("fastjet")
-heppyyier.load("pythia8")
+import hepyy
+hepyy.load("fastjet")
+hepyy.load("pythia8")
 import fastjet, pythia8, cppyy
 jet = fastjet.PseudoJet(1.0, 0.0, 1.0, 1.414)
 print(jet.pt())
@@ -328,7 +328,7 @@ heyy kernel install          # same --name replaces the existing spec in place
 
 For a shared JupyterHub pointing at the admin-built packages (workflow 4/5):
 ```bash
-export HEPPYYIER_PACKAGES_DIR=/shared/hep/packages
+export HEPYY_PACKAGES_DIR=/shared/hep/packages
 heyy kernel install --display-name "HEP shared" --sys-prefix
 ```
 
@@ -345,10 +345,10 @@ heyy install root           # ~30 min; builds ROOT with system compiler
 ```
 
 ```python
-import heppyyier
-heppyyier.load("root")      # ROOT's cling is now the active interpreter
-heppyyier.load("fastjet")   # uses ROOT's cling — no pip-cppyy conflict
-heppyyier.load("pythia8")
+import hepyy
+hepyy.load("root")      # ROOT's cling is now the active interpreter
+hepyy.load("fastjet")   # uses ROOT's cling — no pip-cppyy conflict
+hepyy.load("pythia8")
 import ROOT, fastjet, pythia8
 ```
 
@@ -377,12 +377,12 @@ heyy kernel install
 
 | Goal | Command |
 |------|---------|
-| Create local venv + heppyyier | `henv .` |
+| Create local venv + hepyy | `henv .` |
 | Build all core packages | `heyy install fastjet hepmc3 lhapdf pythia8 fjcontrib` |
 | Build cppyy from source (HPC) | `heyy install cppyy --force` |
-| Share packages (admin) | `export HEPPYYIER_PACKAGES_DIR=/shared/…; heyy install …` |
+| Share packages (admin) | `export HEPYY_PACKAGES_DIR=/shared/…; heyy install …` |
 | Use shared packages (user, read-only) | `henv --system-packages-dir /shared/… .` |
 | Add personal packages on top of shared | `heyy install mypkg` (writes to venv, not shared dir) |
 | Register Jupyter kernel | `heyy kernel install` |
 | Refresh modulefiles | `heyy generate-modules` |
-| Update heppyyier + recipes | `heyy upgrade && heyy recipe update` |
+| Update hepyy + recipes | `heyy upgrade && heyy recipe update` |

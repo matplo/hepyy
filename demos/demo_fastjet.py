@@ -1,11 +1,11 @@
 """
-Demo: using FastJet via heppyyier.
+Demo: using FastJet via hepyy.
 
 Run with:
     python demo_fastjet.py
 
 Or, with the shell module system:
-    eval "$(heppyyier shell-init)"
+    eval "$(hepyy shell-init)"
     module load fastjet
     python demo_fastjet.py
 """
@@ -13,7 +13,7 @@ Or, with the shell module system:
 # Packages must be loaded before running. Either:
 #   module load fastjet          # autoload hook handles the rest
 # or uncomment:
-#   import heppyyier; heppyyier.load("fastjet")
+#   import hepyy; hepyy.load("fastjet")
 import cppyy
 import fastjet
 

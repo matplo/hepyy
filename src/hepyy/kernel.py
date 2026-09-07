@@ -62,7 +62,7 @@ def _build_env(packages_dir: pathlib.Path, packages: dict) -> dict:
         s = os.pathsep.join(parts)
         return s + os.pathsep + current if current else s
 
-    env: dict = {"HEPPYYIER_PACKAGES_DIR": str(packages_dir)}
+    env: dict = {"HEPYY_PACKAGES_DIR": str(packages_dir)}
 
     v = _prepend(path_parts, os.environ.get("PATH", ""))
     if v:
@@ -89,7 +89,7 @@ def install_kernel(
     display_name: Optional[str] = None,
     user: bool = True,
 ) -> pathlib.Path:
-    """Write a Jupyter kernel spec for the current heppyyier environment.
+    """Write a Jupyter kernel spec for the current hepyy environment.
 
     Re-running overwrites the existing spec, refreshing env paths after new
     packages are installed.
@@ -103,7 +103,7 @@ def install_kernel(
     packages_dir = get_packages_dir()
 
     if name is None:
-        name = "heppyyier-" + pathlib.Path(sys.prefix).name
+        name = "hepyy-" + pathlib.Path(sys.prefix).name
 
     if display_name is None:
         pkg_list = ", ".join(sorted(packages.keys())) if packages else "no packages installed"
@@ -115,7 +115,7 @@ def install_kernel(
     # shared/admin-installed packages at runtime (two-tier registry lookup).
     sys_dirs = get_system_packages_dirs()
     if sys_dirs:
-        env["HEPPYYIER_SYSTEM_PACKAGES_DIR"] = os.pathsep.join(str(d) for d in sys_dirs)
+        env["HEPYY_SYSTEM_PACKAGES_DIR"] = os.pathsep.join(str(d) for d in sys_dirs)
 
     kernel_spec = {
         "argv": [sys.executable, "-m", "ipykernel_launcher", "-f", "{connection_file}"],
@@ -123,7 +123,7 @@ def install_kernel(
         "language": "python",
         "env": env,
         "metadata": {
-            "heppyyier": True,
+            "hepyy": True,
             "packages_dir": str(packages_dir),
         },
     }
@@ -141,14 +141,14 @@ def install_kernel(
 
 
 def list_kernels() -> list:
-    """Return info dicts for every heppyyier-managed Jupyter kernel."""
+    """Return info dicts for every hepyy-managed Jupyter kernel."""
     _check_deps()
     from jupyter_client.kernelspec import KernelSpecManager
     mgr = KernelSpecManager()
     results = []
     for name, spec in mgr.get_all_specs().items():
         meta = spec.get("spec", {}).get("metadata", {}) if isinstance(spec, dict) else {}
-        if not meta.get("heppyyier"):
+        if not meta.get("hepyy"):
             continue
         results.append({
             "name": name,
@@ -164,7 +164,7 @@ def update_kernel(
     display_name: Optional[str] = None,
     user: bool = True,
 ) -> pathlib.Path:
-    """Refresh the env embedded in an existing heppyyier kernel spec.
+    """Refresh the env embedded in an existing hepyy kernel spec.
 
     If *name* is None the default name for the current venv is used.
     Warns when the kernel's recorded Python executable differs from the
@@ -175,7 +175,7 @@ def update_kernel(
     from jupyter_client.kernelspec import KernelSpecManager, NoSuchKernel
 
     if name is None:
-        name = "heppyyier-" + pathlib.Path(sys.prefix).name
+        name = "hepyy-" + pathlib.Path(sys.prefix).name
 
     mgr = KernelSpecManager()
     try:
@@ -186,9 +186,9 @@ def update_kernel(
             "Run 'heyy kernel install' to create it first."
         )
 
-    if not existing.metadata.get("heppyyier"):
+    if not existing.metadata.get("hepyy"):
         raise PermissionError(
-            f"Kernel '{name}' was not installed by heppyyier — refusing to update it."
+            f"Kernel '{name}' was not installed by hepyy — refusing to update it."
         )
 
     # Warn when the stored Python differs from the current interpreter.
@@ -196,7 +196,7 @@ def update_kernel(
     if stored_python and stored_python != sys.executable:
         import warnings
         warnings.warn(
-            f"[heppyyier] Kernel '{name}' was previously installed with\n"
+            f"[hepyy] Kernel '{name}' was previously installed with\n"
             f"  {stored_python}\n"
             f"but is now being refreshed with\n"
             f"  {sys.executable}\n"
@@ -213,10 +213,10 @@ def update_kernel(
 
 
 def remove_kernel(name: str) -> pathlib.Path:
-    """Remove a heppyyier-managed kernel spec by name.
+    """Remove a hepyy-managed kernel spec by name.
 
     Raises KeyError if the kernel doesn't exist.
-    Raises PermissionError if it's not a heppyyier-managed kernel.
+    Raises PermissionError if it's not a hepyy-managed kernel.
     """
     _check_deps()
     from jupyter_client.kernelspec import KernelSpecManager, NoSuchKernel
@@ -226,9 +226,9 @@ def remove_kernel(name: str) -> pathlib.Path:
     except NoSuchKernel:
         raise KeyError(f"No kernel named '{name}' found.")
 
-    if not spec.metadata.get("heppyyier"):
+    if not spec.metadata.get("hepyy"):
         raise PermissionError(
-            f"Kernel '{name}' was not installed by heppyyier — refusing to remove it."
+            f"Kernel '{name}' was not installed by hepyy — refusing to remove it."
         )
 
     resource_dir = pathlib.Path(spec.resource_dir)

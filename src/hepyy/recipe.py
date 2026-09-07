@@ -152,6 +152,6 @@ def find_recipe(
     raise RecipeNotFoundError(
         f"No recipe found for '{name}'"
         + (f" version '{version}'" if version else "")
-        + ". Run 'heppyyier avail' to see available recipes, "
-        + "or 'heppyyier recipe update' to refresh from GitHub."
+        + ". Run 'hepyy avail' to see available recipes, "
+        + "or 'hepyy recipe update' to refresh from GitHub."
     )

@@ -41,7 +41,7 @@ class Loader:
         verbose: bool = False,
     ) -> None:
         # Normalize hyphens/underscores early so dedup works regardless of which
-        # form the caller uses ("heppyyier-utils" and "heppyyier_utils" are one package).
+        # form the caller uses ("hepyy-utils" and "hepyy_utils" are one package).
         alt = name.replace("_", "-") if "_" in name else name.replace("-", "_")
         if name in self._loaded or alt in self._loaded:
             return
@@ -54,7 +54,7 @@ class Loader:
 
         if shell_version:
             shell_prefix = os.environ.get(
-                f"HEPPYYIER_LOADED_{name.upper().replace('-','_')}_PREFIX"
+                f"HEPYY_LOADED_{name.upper().replace('-','_')}_PREFIX"
             )
             if shell_prefix:
                 # Build a synthetic record from env vars
@@ -65,7 +65,7 @@ class Loader:
             record = reg.get(name)
 
         # PyPI/pip normalizes hyphens and underscores as equivalent.  Let users
-        # pass either form ("heppyyier_utils" or "heppyyier-utils") and resolve
+        # pass either form ("hepyy_utils" or "hepyy-utils") and resolve
         # to whichever variant the registry actually has.
         if record is None:
             alt = name.replace("_", "-") if "_" in name else name.replace("-", "_")
@@ -82,7 +82,7 @@ class Loader:
             else:
                 raise PackageNotInstalledError(
                     f"Package '{name}' is not installed. "
-                    f"Run: heppyyier install {name}"
+                    f"Run: hepyy install {name}"
                 )
 
         # Resolve cppyy metadata from recipe (source of truth); fall back to
@@ -127,7 +127,7 @@ class Loader:
         self._loaded.add(name)
 
     def _shell_loaded_version(self, name: str) -> Optional[str]:
-        key = f"HEPPYYIER_LOADED_{name.upper().replace('-', '_')}"
+        key = f"HEPYY_LOADED_{name.upper().replace('-', '_')}"
         return os.environ.get(key)
 
     def _record_from_prefix(
@@ -207,7 +207,7 @@ class Loader:
         )
         if not has_filesystem:
             warnings.warn(
-                "[heppyyier] pip-cppyy's PCH build will likely fail on this system. "
+                "[hepyy] pip-cppyy's PCH build will likely fail on this system. "
                 "The binary cling wheel is incompatible with the system GCC include layout. "
                 "Fix: 'heyy install cppyy --force' builds cling from source with the "
                 f"system g++ (GCC ≤ {self._CLING_MAX_COMPATIBLE_GCC}), which resolves the "
@@ -216,11 +216,11 @@ class Loader:
             )
 
     def _ensure_cppyy_on_syspath(self) -> None:
-        """Add cppyy's heppyyier prefix to sys.path when it was installed via
+        """Add cppyy's hepyy prefix to sys.path when it was installed via
         'heyy install cppyy' (pip --target {prefix}).
 
         With --target installs the cppyy/* packages live directly in the
-        heppyyier-managed prefix (user or system registry), not in any venv's
+        hepyy-managed prefix (user or system registry), not in any venv's
         site-packages.  Without this, 'import cppyy' falls back to the binary
         pip wheel — which crashes on NERSC/SUSE (<filesystem> not found) and
         silently fails on Colab when the venv has no cppyy at all.
@@ -363,7 +363,7 @@ class Loader:
                 cppyy.include(header)
             except Exception as e:
                 warnings.warn(
-                    f"[heppyyier] Could not include '{header}': {e}\n"
+                    f"[hepyy] Could not include '{header}': {e}\n"
                     "  The proxy module will be created but attribute access will fail.\n"
                     "  Check that the include directory is readable and cppyy is working.",
                     stacklevel=3,
@@ -383,13 +383,13 @@ class Loader:
             if full not in sys.path:
                 sys.path.insert(0, full)
                 if verbose:
-                    print(f"[heppyyier] Added to sys.path: {full}")
+                    print(f"[hepyy] Added to sys.path: {full}")
 
     def _inject_proxy_module(self, name: str, ns_name: str) -> None:
         ns_name = ns_name or name
 
         proxy = types.ModuleType(name)
-        proxy.__doc__ = f"heppyyier cppyy proxy for {name} (namespace: {ns_name})"
+        proxy.__doc__ = f"hepyy cppyy proxy for {name} (namespace: {ns_name})"
         proxy.__path__ = []  # type: ignore[assignment]
         proxy.__package__ = name
 

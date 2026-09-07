@@ -12,7 +12,7 @@ else:
 
 
 def _load_project_config() -> dict:
-    candidate = pathlib.Path.cwd() / ".heppyyier.toml"
+    candidate = pathlib.Path.cwd() / ".hepyy.toml"
     if candidate.exists():
         with open(candidate, "rb") as f:
             return tomllib.load(f)
@@ -22,7 +22,7 @@ def _load_project_config() -> dict:
 def _default_packages_dir() -> pathlib.Path:
     # Inside a virtual environment → keep packages alongside the venv itself
     if sys.prefix != sys.base_prefix:
-        return pathlib.Path(sys.prefix) / "heppyyier_packages"
+        return pathlib.Path(sys.prefix) / "hepyy_packages"
     return pathlib.Path.cwd() / "packages"
 
 
@@ -30,14 +30,14 @@ def get_packages_dir() -> pathlib.Path:
     """Root of the permanent package store: <packages_dir>/<name>/<version>/.
 
     Resolution order:
-      1. HEPPYYIER_PACKAGES_DIR env var  (preferred)
-      2. HEPPYYIER_BUILD_DIR env var      (legacy alias)
-      3. .heppyyier.toml  packages_dir key
-      4. .heppyyier.toml  build_dir key   (legacy alias)
-      5. <venv>/heppyyier_packages/  when running inside a venv
+      1. HEPYY_PACKAGES_DIR env var  (preferred)
+      2. HEPYY_BUILD_DIR env var      (legacy alias)
+      3. .hepyy.toml  packages_dir key
+      4. .hepyy.toml  build_dir key   (legacy alias)
+      5. <venv>/hepyy_packages/  when running inside a venv
       6. ./packages/  otherwise
     """
-    for key in ("HEPPYYIER_PACKAGES_DIR", "HEPPYYIER_BUILD_DIR"):
+    for key in ("HEPYY_PACKAGES_DIR", "HEPYY_BUILD_DIR"):
         if key in os.environ:
             return pathlib.Path(os.environ[key]).resolve()
     cfg = _load_project_config()
@@ -56,12 +56,12 @@ def get_system_packages_dirs() -> list:
     """Return read-only shared package directories (empty list = no overlay).
 
     Resolution order:
-      1. HEPPYYIER_SYSTEM_PACKAGES_DIR env var (colon-separated)
-      2. .heppyyier.toml  system_packages_dir key
+      1. HEPYY_SYSTEM_PACKAGES_DIR env var (colon-separated)
+      2. .hepyy.toml  system_packages_dir key
 
     When unset, returns [] and behaviour is identical to before this feature.
     """
-    val = os.environ.get("HEPPYYIER_SYSTEM_PACKAGES_DIR", "")
+    val = os.environ.get("HEPYY_SYSTEM_PACKAGES_DIR", "")
     if not val:
         cfg = _load_project_config()
         val = cfg.get("system_packages_dir", "")
@@ -77,8 +77,8 @@ def get_log_dir() -> pathlib.Path:
 
 
 def get_recipe_cache_dir() -> pathlib.Path:
-    if "HEPPYYIER_RECIPE_CACHE_DIR" in os.environ:
-        return pathlib.Path(os.environ["HEPPYYIER_RECIPE_CACHE_DIR"]).resolve()
+    if "HEPYY_RECIPE_CACHE_DIR" in os.environ:
+        return pathlib.Path(os.environ["HEPYY_RECIPE_CACHE_DIR"]).resolve()
     return get_packages_dir() / "recipe-cache"
 
 

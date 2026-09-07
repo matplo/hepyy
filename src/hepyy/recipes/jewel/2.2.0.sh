@@ -1,7 +1,7 @@
 set -e
 lhapdf_prefix="{{ lhapdf_prefix }}"
 if [ -z "$lhapdf_prefix" ]; then
-  echo "[jewel] ERROR: lhapdf not found in heppyyier registry — install lhapdf first"
+  echo "[jewel] ERROR: lhapdf not found in hepyy registry — install lhapdf first"
   exit 1
 fi
 make LHAPDF_PATH="$lhapdf_prefix/lib"

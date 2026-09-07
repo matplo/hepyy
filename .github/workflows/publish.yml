@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/project/heppyyier/
+      url: https://pypi.org/project/hepyy/
 
     steps:
       - name: Download dist artifacts

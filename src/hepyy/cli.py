@@ -9,7 +9,7 @@ from .config import get_build_dir, get_packages_dir, get_registry_path
 @click.group()
 @click.version_option(message="%(prog)s %(version)s")
 def cli():
-    """heppyyier — HEP C++ package manager with cppyy bindings."""
+    """hepyy — HEP C++ package manager with cppyy bindings."""
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +66,7 @@ def list_cmd():
     reg = get_registry()
     pkgs = reg.all_packages()
     if not pkgs:
-        click.echo("No packages installed. Run 'heppyyier install <pkg>'.")
+        click.echo("No packages installed. Run 'hepyy install <pkg>'.")
         return
     click.echo(f"{'Package':<20} {'Version':<12} Prefix")
     click.echo("-" * 70)
@@ -137,8 +137,8 @@ def init():
         click.echo(f"Registry already exists: {reg_path}")
     click.echo(f"Packages directory: {pkg_dir}")
 
-    # Auto-register the canonical heppyyier-recipes repo if not already present
-    _RECIPES_REPO = "https://github.com/matplo/heppyyier-recipes"
+    # Auto-register the canonical hepyy-recipes repo if not already present
+    _RECIPES_REPO = "https://github.com/matplo/hepyy-recipes"
     from .recipe_sources import list_sources, add_source
     existing_urls = {s["url"] for s in list_sources()}
     if _RECIPES_REPO not in existing_urls:
@@ -146,7 +146,7 @@ def init():
         try:
             add_source(_RECIPES_REPO)
         except Exception as exc:
-            click.echo(f"  Warning: could not fetch recipes ({exc}). Run 'heppyyier recipe update' later.", err=True)
+            click.echo(f"  Warning: could not fetch recipes ({exc}). Run 'hepyy recipe update' later.", err=True)
     else:
         click.echo("Recipe source: already registered")
 
@@ -175,11 +175,11 @@ def init():
                 else:
                     click.echo(
                         "Could not auto-fix (install_name_tool / patchelf missing?).\n"
-                        "Run 'heppyyier fix-cppyy' to retry manually.",
+                        "Run 'hepyy fix-cppyy' to retry manually.",
                         err=True,
                     )
         else:
-            click.echo("cppyy backend: skipping check (libCling is outside this venv — run 'heppyyier fix-cppyy' if needed)")
+            click.echo("cppyy backend: skipping check (libCling is outside this venv — run 'hepyy fix-cppyy' if needed)")
     else:
         click.echo("cppyy backend: skipping check (not in a virtual environment)")
 
@@ -202,12 +202,12 @@ def config_cmd():
     click.echo(f"log_dir      : {get_log_dir()}")
     click.echo(f"src_dir      : {pkg_dir / 'src'}")
     # Show which config source was used
-    if "HEPPYYIER_PACKAGES_DIR" in os.environ:
-        click.echo("(source: HEPPYYIER_PACKAGES_DIR env var)")
-    elif "HEPPYYIER_BUILD_DIR" in os.environ:
-        click.echo("(source: HEPPYYIER_BUILD_DIR env var  [legacy])")
-    elif (pathlib.Path.cwd() / ".heppyyier.toml").exists():
-        click.echo("(source: .heppyyier.toml)")
+    if "HEPYY_PACKAGES_DIR" in os.environ:
+        click.echo("(source: HEPYY_PACKAGES_DIR env var)")
+    elif "HEPYY_BUILD_DIR" in os.environ:
+        click.echo("(source: HEPYY_BUILD_DIR env var  [legacy])")
+    elif (pathlib.Path.cwd() / ".hepyy.toml").exists():
+        click.echo("(source: .hepyy.toml)")
     else:
         import sys
         if sys.prefix != sys.base_prefix:
@@ -271,7 +271,7 @@ def env(package):
 # demos
 # ---------------------------------------------------------------------------
 
-_DEMOS_BASE = "https://raw.githubusercontent.com/matplo/heppyyier/main/demos"
+_DEMOS_BASE = "https://raw.githubusercontent.com/matplo/hepyy/main/demos"
 _DEMO_FILES = [
     "demo_fastjet.py",
     "demo_fjcontrib.py",
@@ -285,7 +285,7 @@ _DEMO_FILES = [
 ]
 
 @cli.command()
-@click.option("--dest", default="./heppyyier_demos", show_default=True, help="Directory to download demos into.")
+@click.option("--dest", default="./hepyy_demos", show_default=True, help="Directory to download demos into.")
 @click.option("--overwrite", is_flag=True, help="Overwrite existing files.")
 def demos(dest, overwrite):
     """Download demo scripts from GitHub to the current directory."""
@@ -323,7 +323,7 @@ def shell_init():
 # completion
 # ---------------------------------------------------------------------------
 
-_COMPLETION_ALIASES = ["heyy", "her", "heppyyier"]
+_COMPLETION_ALIASES = ["heyy", "her", "hepyy"]
 
 
 def _bash_completion_script() -> str:
@@ -338,10 +338,10 @@ def _bash_completion_script() -> str:
     }
 
     lines = [
-        "# heppyyier bash completion — works with bash 3.2+",
+        "# hepyy bash completion — works with bash 3.2+",
         "# Add to ~/.bashrc:  eval \"$(heyy completion)\"",
         "",
-        "_heppyyier_completion() {",
+        "_hepyy_completion() {",
         "    local cur prev",
         "    COMPREPLY=()",
         '    cur="${COMP_WORDS[COMP_CWORD]}"',
@@ -364,7 +364,7 @@ def _bash_completion_script() -> str:
         '',
     ]
     for alias in _COMPLETION_ALIASES:
-        lines.append(f"complete -F _heppyyier_completion {alias}")
+        lines.append(f"complete -F _hepyy_completion {alias}")
     return "\n".join(lines) + "\n"
 
 @cli.command("completion")
@@ -375,7 +375,7 @@ def _bash_completion_script() -> str:
     help="Shell type (default: auto-detected from $SHELL).",
 )
 def completion(shell_type):
-    """Print shell completion setup lines for all heppyyier aliases.
+    """Print shell completion setup lines for all hepyy aliases.
 
     \b
     Bash / Zsh — add to ~/.bashrc or ~/.zshrc:
@@ -410,7 +410,7 @@ def completion(shell_type):
 
 @cli.command("modules")
 def modules():
-    """Print 'module use <path>' for the heppyyier modulefiles directory.
+    """Print 'module use <path>' for the hepyy modulefiles directory.
 
     Usage: eval "$(heyy modules)"
     Then:  module load jewel/2.4.0
@@ -421,7 +421,7 @@ def modules():
 
 @cli.command("modules-path")
 def modules_path():
-    """Print the heppyyier modulefiles directory path (no 'module use' prefix)."""
+    """Print the hepyy modulefiles directory path (no 'module use' prefix)."""
     from .shell import get_modulefiles_dir
     click.echo(get_modulefiles_dir())
 
@@ -461,11 +461,11 @@ def generate_modules():
 # upgrade
 # ---------------------------------------------------------------------------
 
-_HEPPYYIER_GITHUB = "git+https://github.com/matplo/heppyyier.git"
+_HEPYY_GITHUB = "git+https://github.com/matplo/hepyy.git"
 
 @cli.command()
 def upgrade():
-    """Reinstall heppyyier itself from GitHub (picks up latest commits)."""
+    """Reinstall hepyy itself from GitHub (picks up latest commits)."""
     import shutil
     import subprocess
 
@@ -473,11 +473,11 @@ def upgrade():
     uv = shutil.which("uv")
 
     if uv:
-        cmd = [uv, "pip", "install", "--reinstall-package", "heppyyier", _HEPPYYIER_GITHUB]
+        cmd = [uv, "pip", "install", "--reinstall-package", "hepyy", _HEPYY_GITHUB]
     else:
-        cmd = [str(pip), "install", "--force-reinstall", "--no-deps", _HEPPYYIER_GITHUB]
+        cmd = [str(pip), "install", "--force-reinstall", "--no-deps", _HEPYY_GITHUB]
 
-    click.echo(f"Upgrading heppyyier from GitHub ...")
+    click.echo(f"Upgrading hepyy from GitHub ...")
     click.echo(f"  {' '.join(cmd)}")
     result = subprocess.run(cmd)
     if result.returncode == 0:
@@ -553,7 +553,7 @@ def recipe_list_sources():
     from .recipe_sources import list_sources
     sources = list_sources()
     if not sources:
-        click.echo("No remote sources registered. Use 'heppyyier recipe add <url>'.")
+        click.echo("No remote sources registered. Use 'hepyy recipe add <url>'.")
         return
     for src in sources:
         subtree = f"  subtree: {src['subtree']}" if src.get("subtree") else ""
@@ -581,23 +581,23 @@ def kernel():
     Typical workflow:
       heyy kernel install            # create the kernel for this environment
       heyy kernel update             # refresh after 'heyy install <pkg>'
-      heyy kernel list               # show registered heppyyier kernels
+      heyy kernel list               # show registered hepyy kernels
       heyy kernel uninstall <name>   # remove a kernel (name from 'kernel list')
 
-    Each henv/venv gets its own kernel named heppyyier-<venv-name>, so
+    Each henv/venv gets its own kernel named hepyy-<venv-name>, so
     multiple environments are automatically kept separate. Run 'kernel list'
     to see all registered kernels and their associated package directories.
     """
 
 
 @kernel.command("install")
-@click.option("--name", default=None, help="Kernel name slug used internally by Jupyter (default: heppyyier-<venv-name>).")
+@click.option("--name", default=None, help="Kernel name slug used internally by Jupyter (default: hepyy-<venv-name>).")
 @click.option("--display-name", "display_name", default=None,
               help="Human-readable name shown in JupyterHub/Lab (default: 'HEP (<pkg list>)').")
 @click.option("--sys-prefix", "sys_prefix", is_flag=True, default=False,
               help="Install into sys.prefix so all users of this environment see the kernel; default installs for the current user only.")
 def kernel_install(name, display_name, sys_prefix):
-    """Create or refresh the heppyyier Jupyter kernel spec.
+    """Create or refresh the hepyy Jupyter kernel spec.
 
     Embeds PATH, library paths, and PYTHONPATH for every installed package
     so notebooks work without any manual environment setup.
@@ -624,8 +624,8 @@ def kernel_install(name, display_name, sys_prefix):
     click.echo(f"  display name : {spec['display_name']}")
     click.echo(f"  python       : {spec['argv'][0]}")
     env = spec.get("env", {})
-    if "HEPPYYIER_PACKAGES_DIR" in env:
-        click.echo(f"  packages dir : {env['HEPPYYIER_PACKAGES_DIR']}")
+    if "HEPYY_PACKAGES_DIR" in env:
+        click.echo(f"  packages dir : {env['HEPYY_PACKAGES_DIR']}")
     if "PATH" in env:
         click.echo(f"  PATH         : {env['PATH'][:80]}{'...' if len(env['PATH']) > 80 else ''}")
     click.echo(f"\nSelect '{spec['display_name']}' in JupyterHub/Lab to use it.")
@@ -633,11 +633,11 @@ def kernel_install(name, display_name, sys_prefix):
 
 @kernel.command("list")
 def kernel_list():
-    """List heppyyier-managed Jupyter kernels.
+    """List hepyy-managed Jupyter kernels.
 
     Shows only kernels created by 'heyy kernel install'. Columns: kernel
     name (pass to 'heyy kernel uninstall'), display name shown in
-    JupyterHub/Lab, and the heppyyier packages directory embedded in the spec.
+    JupyterHub/Lab, and the hepyy packages directory embedded in the spec.
     """
     from .kernel import list_kernels
     try:
@@ -647,7 +647,7 @@ def kernel_list():
         sys.exit(1)
 
     if not kernels:
-        click.echo("No heppyyier kernels installed. Run 'heyy kernel install' to create one.")
+        click.echo("No hepyy kernels installed. Run 'heyy kernel install' to create one.")
         return
 
     click.echo(f"{'Name':<30} {'Display name':<40} Packages dir")
@@ -661,10 +661,10 @@ def kernel_list():
 @click.option("--sys-prefix", "sys_prefix", is_flag=True, default=False,
               help="Re-install into sys.prefix (default: user install).")
 def kernel_update(name, sys_prefix):
-    """Refresh an existing heppyyier kernel spec to pick up new packages.
+    """Refresh an existing hepyy kernel spec to pick up new packages.
 
     NAME is the kernel slug from 'heyy kernel list'. When omitted, the kernel
-    for the current environment (heppyyier-<venv-name>) is updated.
+    for the current environment (hepyy-<venv-name>) is updated.
 
     Only the env block is meaningfully updated (PATH, PYTHONPATH, library
     paths). The kernel will be rewritten with the current Python interpreter,
@@ -673,7 +673,7 @@ def kernel_update(name, sys_prefix):
     \b
     Examples:
       heyy kernel update                        # refresh current venv's kernel
-      heyy kernel update heppyyier-henv-dev     # refresh a named kernel
+      heyy kernel update hepyy-henv-dev     # refresh a named kernel
     """
     from .kernel import update_kernel
     try:
@@ -694,24 +694,24 @@ def kernel_update(name, sys_prefix):
     click.echo(f"  display name : {spec['display_name']}")
     click.echo(f"  python       : {spec['argv'][0]}")
     env = spec.get("env", {})
-    if "HEPPYYIER_PACKAGES_DIR" in env:
-        click.echo(f"  packages dir : {env['HEPPYYIER_PACKAGES_DIR']}")
+    if "HEPYY_PACKAGES_DIR" in env:
+        click.echo(f"  packages dir : {env['HEPYY_PACKAGES_DIR']}")
     click.echo(f"\nSelect '{spec['display_name']}' in JupyterHub/Lab to use it.")
 
 
 @kernel.command("uninstall")
 @click.argument("name")
 def kernel_uninstall(name):
-    """Remove a heppyyier-managed Jupyter kernel spec.
+    """Remove a hepyy-managed Jupyter kernel spec.
 
     NAME is the kernel slug shown in the first column of 'heyy kernel list'.
-    Only kernels installed by heppyyier can be removed this way; others are
+    Only kernels installed by hepyy can be removed this way; others are
     left untouched.
 
     \b
     Example:
       heyy kernel list                        # find the kernel name
-      heyy kernel uninstall heppyyier-myenv   # remove it
+      heyy kernel uninstall hepyy-myenv   # remove it
     """
     from .kernel import remove_kernel
     try:

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "heppyyier"
+name = "hepyy"
 version = "0.2.0"
 description = "HEP C++ package manager with cppyy dynamic bindings"
 readme = "README.md"
@@ -36,14 +36,14 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/matplo/heppyyier"
-Repository = "https://github.com/matplo/heppyyier"
-Issues = "https://github.com/matplo/heppyyier/issues"
+Homepage = "https://github.com/matplo/hepyy"
+Repository = "https://github.com/matplo/hepyy"
+Issues = "https://github.com/matplo/hepyy/issues"
 
 [project.scripts]
-heppyyier = "heppyyier.cli:main"
-heyy = "heppyyier.cli:main"
-her = "heppyyier.cli:main"
+hepyy = "hepyy.cli:main"
+heyy = "hepyy.cli:main"
+her = "hepyy.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/heppyyier"]
+packages = ["src/hepyy"]

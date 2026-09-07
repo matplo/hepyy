@@ -1,5 +1,5 @@
 """
-Demo: Pythia8 event generation + FastJet anti-kt jet finding via heppyyier.
+Demo: Pythia8 event generation + FastJet anti-kt jet finding via hepyy.
 
 Run with:
     python demo_pythia_fastjet.py
@@ -8,7 +8,7 @@ Run with:
 # Packages must be loaded before running. Either:
 #   module load fastjet pythia8   # autoload hook handles the rest
 # or uncomment:
-#   import heppyyier; heppyyier.load("fastjet"); heppyyier.load("pythia8")
+#   import hepyy; hepyy.load("fastjet"); hepyy.load("pythia8")
 import cppyy
 import pythia8
 import fastjet

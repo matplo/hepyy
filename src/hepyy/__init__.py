@@ -39,7 +39,7 @@ module = _ModuleProxy()
 
 
 def load(name, **kwargs) -> None:
-    """Shorthand for heppyyier.module.load(name).
+    """Shorthand for hepyy.module.load(name).
 
     Accepts a single package name or a list of names loaded in order.
     """
@@ -51,25 +51,25 @@ def load(name, **kwargs) -> None:
 
 
 def gSystem_load(name: str) -> None:
-    """Load a heppyyier-installed package into ROOT via ROOT.gSystem.Load().
+    """Load a hepyy-installed package into ROOT via ROOT.gSystem.Load().
 
     Use this in ROOT-first sessions (Pattern C) to make a package's C++ symbols
     available through ROOT's own cling, without invoking pip-cppyy.
 
     Example::
 
-        import heppyyier
-        heppyyier.load('root')
+        import hepyy
+        hepyy.load('root')
         import ROOT
-        heppyyier.gSystem_load('fastjet')
-        heppyyier.gSystem_load('pythia8')
+        hepyy.gSystem_load('fastjet')
+        hepyy.gSystem_load('pythia8')
         p = ROOT.Pythia8.Pythia()
         j = ROOT.fastjet.PseudoJet(1, 0, 1, 1.4)
     """
     try:
         import ROOT
     except ImportError:
-        raise ImportError("ROOT is not importable — run heppyyier.load('root') and import ROOT first")
+        raise ImportError("ROOT is not importable — run hepyy.load('root') and import ROOT first")
 
     reg = get_registry()
     rec = reg.get(name)
