@@ -361,6 +361,23 @@ session so the potential conflict is visible at runtime.
 > python script.py               # fastjet and pythia8 use ROOT's cling
 > ```
 
+> **macOS with a current SDK:** the same class of problem as above, different
+> cause — pip-cppyy's `cling` (LLVM 16) can't parse the C++ headers in
+> current macOS SDKs, so the first `import cppyy` crashes building its PCH
+> cache. hepyy warns about this before it happens (pointing here) instead of
+> leaving you to decode the crash. Fix:
+> ```bash
+> heyy recipe update
+> heyy install cppyy --force   # ~10-30 min, one-time; builds cling pinned to
+>                               # an older, compatible SDK — no runtime workaround
+>                               # needed afterward
+> ```
+> Build it once into a shared `HEPYY_PACKAGES_DIR` and every `henv`-created env
+> can reuse it via `--system-packages-dir` instead of rebuilding per env — see
+> henv's [Fixing a broken binary cppyy wheel](https://github.com/matplo/henv#fixing-a-broken-binary-cppyy-wheel).
+> `heyy install root` (above) is also a valid alternative here, for the same
+> reason: ROOT bundles its own, newer `cling`.
+
 ### LHAPDF — native Python bindings
 
 LHAPDF is built with SWIG Python bindings. After `hepyy install lhapdf` the module
