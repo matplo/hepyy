@@ -56,6 +56,53 @@ def register(package, prefix, recipe_path, version):
 
 
 # ---------------------------------------------------------------------------
+# uninstall
+# ---------------------------------------------------------------------------
+
+@cli.command()
+@click.argument("package")
+@click.option("--keep-files", is_flag=True, default=False,
+              help="Remove from registry only; leave the installed files on disk.")
+def uninstall(package, keep_files):
+    """Remove an installed package from the registry (and optionally its files)."""
+    import shutil
+    from .registry import get_registry
+    from .shell import get_modulefiles_dir
+
+    reg = get_registry()
+    record = reg.get(package)
+    if record is None:
+        click.echo(f"Error: '{package}' is not in the registry.", err=True)
+        sys.exit(1)
+
+    version = record.get("version", "unknown")
+    prefix = pathlib.Path(record["prefix"]) if record.get("prefix") else None
+
+    # Remove TCL modulefile if present
+    mod_file = get_modulefiles_dir() / package / version
+    if mod_file.exists():
+        mod_file.unlink()
+        click.echo(f"Removed modulefile: {mod_file}")
+        # Clean up empty parent dir
+        try:
+            mod_file.parent.rmdir()
+        except OSError:
+            pass
+
+    # Remove installed files
+    if not keep_files and prefix and prefix.exists():
+        click.echo(f"Removing {prefix} ...")
+        shutil.rmtree(prefix)
+        click.echo(f"Removed prefix: {prefix}")
+    elif keep_files:
+        click.echo(f"Keeping files at {prefix} (--keep-files)")
+
+    # Deregister
+    reg.remove(package)
+    click.echo(f"Uninstalled {package}/{version}.")
+
+
+# ---------------------------------------------------------------------------
 # list
 # ---------------------------------------------------------------------------
 
