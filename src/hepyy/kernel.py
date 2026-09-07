@@ -148,7 +148,7 @@ def list_kernels() -> list:
     results = []
     for name, spec in mgr.get_all_specs().items():
         meta = spec.get("spec", {}).get("metadata", {}) if isinstance(spec, dict) else {}
-        if not meta.get("hepyy"):
+        if not (meta.get("hepyy") or meta.get("heppyyier")):
             continue
         results.append({
             "name": name,
@@ -186,7 +186,7 @@ def update_kernel(
             "Run 'heyy kernel install' to create it first."
         )
 
-    if not existing.metadata.get("hepyy"):
+    if not (existing.metadata.get("hepyy") or existing.metadata.get("heppyyier")):
         raise PermissionError(
             f"Kernel '{name}' was not installed by hepyy — refusing to update it."
         )
@@ -226,7 +226,7 @@ def remove_kernel(name: str) -> pathlib.Path:
     except NoSuchKernel:
         raise KeyError(f"No kernel named '{name}' found.")
 
-    if not spec.metadata.get("hepyy"):
+    if not (spec.metadata.get("hepyy") or spec.metadata.get("heppyyier")):
         raise PermissionError(
             f"Kernel '{name}' was not installed by hepyy — refusing to remove it."
         )
