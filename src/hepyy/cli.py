@@ -6,6 +6,37 @@ import click
 from .config import get_build_dir, get_packages_dir, get_registry_path
 
 
+# ---------------------------------------------------------------------------
+# Shell-completion helpers (used by install / uninstall / info / env)
+# ---------------------------------------------------------------------------
+
+def _complete_available(ctx, param, incomplete):
+    """Complete with available recipe names (built-in + remote sources)."""
+    try:
+        from click.shell_completion import CompletionItem
+        from .recipe import list_builtin_recipes
+        from .recipe_sources import list_all_remote_recipes
+        names = {n for n, _ in list_builtin_recipes()}
+        try:
+            names.update(n for n, _, _ in list_all_remote_recipes())
+        except Exception:
+            pass
+        return [CompletionItem(n) for n in sorted(names) if n.startswith(incomplete)]
+    except Exception:
+        return []
+
+
+def _complete_installed(ctx, param, incomplete):
+    """Complete with installed package names (from registry)."""
+    try:
+        from click.shell_completion import CompletionItem
+        from .registry import get_registry
+        return [CompletionItem(n) for n in sorted(get_registry().all_packages())
+                if n.startswith(incomplete)]
+    except Exception:
+        return []
+
+
 @click.group()
 @click.version_option(message="%(prog)s %(version)s")
 def cli():
@@ -17,7 +48,7 @@ def cli():
 # ---------------------------------------------------------------------------
 
 @cli.command()
-@click.argument("packages", nargs=-1, required=True)
+@click.argument("packages", nargs=-1, required=True, shell_complete=_complete_available)
 @click.option("--version", "-v", default=None, help="Package version (single-package installs only).")
 @click.option("--recipe", "recipe_path", default=None, help="Path to a YAML recipe file (single-package installs only).")
 @click.option("--force", is_flag=True, help="Re-extract source and rebuild (keeps cached tarball).")
@@ -60,7 +91,7 @@ def register(package, prefix, recipe_path, version):
 # ---------------------------------------------------------------------------
 
 @cli.command()
-@click.argument("package")
+@click.argument("package", shell_complete=_complete_installed)
 @click.option("--keep-files", is_flag=True, default=False,
               help="Remove from registry only; leave the installed files on disk.")
 def uninstall(package, keep_files):
@@ -147,7 +178,7 @@ def avail():
 # ---------------------------------------------------------------------------
 
 @cli.command()
-@click.argument("package")
+@click.argument("package", shell_complete=_complete_installed)
 def info(package):
     """Show details for an installed package."""
     from .registry import get_registry
@@ -298,7 +329,7 @@ def fix_cppyy_cmd(check):
 # ---------------------------------------------------------------------------
 
 @cli.command()
-@click.argument("package", required=False)
+@click.argument("package", required=False, shell_complete=_complete_installed)
 def env(package):
     """Print shell environment variables for a package (or all loaded)."""
     from .registry import get_registry
@@ -374,7 +405,12 @@ _COMPLETION_ALIASES = ["heyy", "her", "hepyy"]
 
 
 def _bash_completion_script() -> str:
-    """Generate a bash 3.2-compatible completion script from the Click command tree."""
+    """Generate a dynamic bash 3.2-compatible completion script.
+
+    Package-name completions are evaluated at completion time by calling
+    'heyy list' (installed) and 'heyy avail' (available) so they are
+    always current without needing to re-source the script.
+    """
     top_cmds = sorted(
         name for name in cli.commands.keys() if not name.startswith("_")
     )
@@ -383,36 +419,50 @@ def _bash_completion_script() -> str:
         for name, cmd in cli.commands.items()
         if not name.startswith("_") and hasattr(cmd, "commands")
     }
+    top_cmds_str = " ".join(top_cmds)
 
     lines = [
-        "# hepyy bash completion — works with bash 3.2+",
-        "# Add to ~/.bashrc:  eval \"$(heyy completion)\"",
+        "# hepyy bash completion — bash 3.2+ compatible, dynamic package names",
+        "# Add to ~/.bashrc or ~/.zshrc:  eval \"$(heyy completion)\"",
+        "",
+        "_hepyy_avail_pkgs() {",
+        "    heyy avail 2>/dev/null | awk '/^[[:space:]]+[a-zA-Z]/{split($1,a,\"/\"); print a[1]}' | sort -u",
+        "}",
+        "",
+        "_hepyy_installed_pkgs() {",
+        "    heyy list 2>/dev/null | awk 'NR>2 && /^[a-zA-Z]/{print $1}'",
+        "}",
         "",
         "_hepyy_completion() {",
-        "    local cur prev",
+        "    local cur cmd",
         "    COMPREPLY=()",
         '    cur="${COMP_WORDS[COMP_CWORD]}"',
-        '    prev="${COMP_WORDS[COMP_CWORD-1]}"',
+        '    cmd="${COMP_WORDS[1]}"',
         "",
-        f'    local top_cmds="{" ".join(top_cmds)}"',
-        "",
-        '    case "$prev" in',
+        '    case "$cmd" in',
+        "        install)",
+        '            COMPREPLY=( $(compgen -W "$(_hepyy_avail_pkgs)" -- "$cur") )',
+        "            return 0 ;;",
+        "        uninstall|info|env)",
+        '            COMPREPLY=( $(compgen -W "$(_hepyy_installed_pkgs)" -- "$cur") )',
+        "            return 0 ;;",
     ]
     for group, subcmds in subcommand_map.items():
-        lines.append(f'        {group})')
+        lines.append(f"        {group})")
         lines.append(f'            COMPREPLY=( $(compgen -W "{" ".join(subcmds)}" -- "$cur") )')
-        lines.append( '            return 0 ;;')
+        lines.append( "            return 0 ;;")
     lines += [
-        '    esac',
-        '',
-        '    COMPREPLY=( $(compgen -W "$top_cmds" -- "$cur") )',
-        '    return 0',
-        '}',
-        '',
+        "    esac",
+        "",
+        f'    COMPREPLY=( $(compgen -W "{top_cmds_str}" -- "$cur") )',
+        "    return 0",
+        "}",
+        "",
     ]
     for alias in _COMPLETION_ALIASES:
         lines.append(f"complete -F _hepyy_completion {alias}")
     return "\n".join(lines) + "\n"
+
 
 @cli.command("completion")
 @click.option(
@@ -422,15 +472,23 @@ def _bash_completion_script() -> str:
     help="Shell type (default: auto-detected from $SHELL).",
 )
 def completion(shell_type):
-    """Print shell completion setup lines for all hepyy aliases.
+    """Print shell completion setup — pipe through eval to activate.
 
     \b
-    Bash / Zsh — add to ~/.bashrc or ~/.zshrc:
+    Bash — add to ~/.bashrc:
+        eval "$(heyy completion)"
+
+    \b
+    Zsh — add to ~/.zshrc:
         eval "$(heyy completion)"
 
     \b
     Fish — add to ~/.config/fish/config.fish:
         heyy completion --shell fish | source
+
+    \b
+    Completes: top-level commands, subcommands, installed package names
+    (for uninstall / info / env), and available recipe names (for install).
     """
     import os
 
@@ -447,12 +505,13 @@ def completion(shell_type):
         for alias in _COMPLETION_ALIASES:
             var = f"_{alias.upper()}_COMPLETE"
             click.echo(f"env {var}=fish_source {alias} | source")
-    elif shell_type == "bash":
-        click.echo(_bash_completion_script())
-    else:
+    elif shell_type == "zsh":
         for alias in _COMPLETION_ALIASES:
             var = f"_{alias.upper()}_COMPLETE"
             click.echo(f'eval "$({var}=zsh_source {alias})"')
+    else:
+        # bash — hand-rolled for bash 3.2+ (macOS system bash) compatibility
+        click.echo(_bash_completion_script())
 
 
 @cli.command("modules")
