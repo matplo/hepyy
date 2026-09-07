@@ -215,6 +215,65 @@ class Loader:
                 UserWarning, stacklevel=4,
             )
 
+    # cling 16 (LLVM 16, shipped with cppyy <= 3.5.x) cannot parse C++ headers
+    # from macOS SDKs newer than ~15.x (missing builtins like __builtin_clzg,
+    # newer _LIBCPP_* attribute macros) -- it crashes with a multi-hundred-
+    # line LLVM parser stack dump on first PCH build rather than failing
+    # cleanly.
+    _CLING_MAX_COMPATIBLE_MACOS_SDK = 15
+
+    def _ensure_compatible_macos_sdk(self) -> None:
+        """On macOS, warn before cppyy's PCH build if it's likely to crash.
+
+        Mirrors _ensure_cxx17_headers's Linux equivalent: detect a build
+        that's about to fail and warn *before* the crash, with an actionable
+        fix, instead of leaving the user to decode an LLVM stack dump.
+        """
+        if sys.platform != "darwin":
+            return
+        if 'cppyy' in sys.modules:
+            return
+
+        # Skip if a PCH already exists for whatever cppyy will actually be
+        # imported (a working prefix/shared install, found via
+        # _ensure_cppyy_on_syspath above, or a previously-built binary-wheel
+        # PCH) -- nothing to warn about, the build already worked.
+        try:
+            import cppyy_backend as _cb
+            pch_dir = pathlib.Path(_cb.__file__).parent / "etc"
+            if list(pch_dir.glob("allDict.cxx.pch.*")):
+                return
+        except ImportError:
+            return  # not installed at all -- a later ImportError explains it better than this check can
+
+        # An explicit SDKROOT means someone (the fixed recipe, or the user)
+        # already pinned an older SDK -- don't second-guess it.
+        if "SDKROOT" in os.environ:
+            return
+
+        import re
+        import subprocess
+        try:
+            r = subprocess.run(
+                ["xcrun", "--sdk", "macosx", "--show-sdk-version"],
+                capture_output=True, text=True, timeout=5,
+            )
+            m = re.match(r"(\d+)", r.stdout.strip())
+            sdk_major = int(m.group(1)) if m else None
+        except Exception:
+            sdk_major = None
+
+        if sdk_major is not None and sdk_major > self._CLING_MAX_COMPATIBLE_MACOS_SDK:
+            warnings.warn(
+                f"[hepyy] pip-cppyy's PCH build will likely crash on macOS SDK {sdk_major}.x: "
+                "cling 16 (LLVM 16) cannot parse this SDK's C++ headers. "
+                "Fix: 'heyy install cppyy --force' builds cppyy-cling from source pinned to "
+                "an older, compatible SDK (~10-30 min, one-time). "
+                "Tip: build it once into a shared HEPYY_PACKAGES_DIR and reuse it everywhere "
+                "with 'henv --system-packages-dir <dir>' to avoid repeating the build per env.",
+                UserWarning, stacklevel=4,
+            )
+
     def _ensure_cppyy_on_syspath(self) -> None:
         """Add cppyy's hepyy prefix to sys.path when it was installed via
         'heyy install cppyy' (pip --target {prefix}).
@@ -285,6 +344,7 @@ class Loader:
         self._ensure_cxx17_headers()
         self._ensure_cppyy_api_path()
         self._ensure_cppyy_on_syspath()
+        self._ensure_compatible_macos_sdk()
         import sys
         _search = []
         if sys.platform == "darwin":
