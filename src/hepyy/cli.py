@@ -458,14 +458,14 @@ def generate_modules():
 
 
 # ---------------------------------------------------------------------------
-# upgrade
+# upgrade / upgrade-from-gh
 # ---------------------------------------------------------------------------
 
 _HEPYY_GITHUB = "git+https://github.com/matplo/hepyy.git"
 
-@cli.command()
-def upgrade():
-    """Reinstall hepyy itself from GitHub (picks up latest commits)."""
+
+def _run_upgrade(source: str, label: str) -> None:
+    """Shared logic for upgrade and upgrade-from-gh."""
     import shutil
     import subprocess
 
@@ -473,11 +473,11 @@ def upgrade():
     uv = shutil.which("uv")
 
     if uv:
-        cmd = [uv, "pip", "install", "--reinstall-package", "hepyy", _HEPYY_GITHUB]
+        cmd = [uv, "pip", "install", "--reinstall-package", "hepyy", source]
     else:
-        cmd = [str(pip), "install", "--force-reinstall", "--no-deps", _HEPYY_GITHUB]
+        cmd = [str(pip), "install", "--force-reinstall", "--no-deps", source]
 
-    click.echo(f"Upgrading hepyy from GitHub ...")
+    click.echo(f"Upgrading hepyy from {label} ...")
     click.echo(f"  {' '.join(cmd)}")
     result = subprocess.run(cmd)
     if result.returncode == 0:
@@ -485,6 +485,18 @@ def upgrade():
     else:
         click.echo("Upgrade failed — check the output above.", err=True)
         sys.exit(result.returncode)
+
+
+@cli.command()
+def upgrade():
+    """Upgrade hepyy to the latest release from PyPI."""
+    _run_upgrade("hepyy", "PyPI")
+
+
+@cli.command("upgrade-from-gh")
+def upgrade_from_gh():
+    """Upgrade hepyy from the latest commit on GitHub (bleeding edge)."""
+    _run_upgrade(_HEPYY_GITHUB, "GitHub")
 
 
 # ---------------------------------------------------------------------------
