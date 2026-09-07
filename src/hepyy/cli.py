@@ -261,6 +261,16 @@ def init():
     else:
         click.echo("cppyy backend: skipping check (not in a virtual environment)")
 
+    # Clean up stale .pth from the pre-rename package (heppyyier → hepyy).
+    # If the old package was uninstalled before installing hepyy, Python raises
+    # ModuleNotFoundError on every startup until the stale file is removed.
+    import sysconfig as _sc
+    _site = pathlib.Path(_sc.get_paths()["purelib"])
+    _stale = _site / "heppyyier_autoload.pth"
+    if _stale.exists():
+        _stale.unlink()
+        click.echo(f"Removed stale heppyyier_autoload.pth from {_site}")
+
     click.echo("\nRun 'heyy generate-modules' to enable 'module load' auto-loading.")
 
 

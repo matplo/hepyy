@@ -233,6 +233,11 @@ def write_sitecustomize() -> pathlib.Path:
     if old.exists() and "hepyy" in old.read_text():
         old.unlink()
 
+    # Remove stale .pth from the pre-rename package (heppyyier → hepyy)
+    stale_pth = site_dir / "heppyyier_autoload.pth"
+    if stale_pth.exists():
+        stale_pth.unlink()
+
     dest = site_dir / "hepyy_autoload.pth"
     dest.write_text("import hepyy._autoload\n")
     return dest
