@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hepyy"
-version = "0.2.1"
+version = "0.2.2"
 description = "HEP C++ package manager with cppyy dynamic bindings"
 readme = "README.md"
 license = { text = "MIT" }
