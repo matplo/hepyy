@@ -375,10 +375,11 @@ def build_package(
         return existing
 
     # Auto-install any depends_on packages that are not yet in the registry.
+    # Pass redownload through so a stale cached tarball doesn't block the dep build.
     for dep in recipe.depends_on:
         if not reg.is_installed(dep):
-            print(f"[{name}] Installing dependency: {dep}")
-            build_package(dep, verbose=verbose, njobs=njobs)
+            print(f"[{name}/{recipe.version}] Installing dependency: {dep}")
+            build_package(dep, verbose=verbose, njobs=njobs, redownload=redownload)
 
     builder = PackageBuilder(recipe, verbose=verbose, extra_vars=extra_vars)
     record = builder.build(version=version or recipe.version, force=force, redownload=redownload, clean=clean)
