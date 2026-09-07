@@ -27,6 +27,10 @@ recipe-cache/
 .ipynb_checkpoints/
 *_executed.ipynb
 
+# Local session-resume scratch files (not project content)
+resume_claude_previous.sh
+claude_resume.sh
+
 # macOS
 .DS_Store
 
