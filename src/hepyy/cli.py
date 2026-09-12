@@ -298,8 +298,11 @@ def config_cmd():
         click.echo("(source: .hepyy.toml)")
     else:
         import sys
+        from .config import _is_conda_env
         if sys.prefix != sys.base_prefix:
             click.echo(f"(source: active venv  {sys.prefix})")
+        elif _is_conda_env():
+            click.echo(f"(source: active conda env  {sys.prefix})")
         else:
             click.echo("(source: default  ./packages/)")
 

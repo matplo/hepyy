@@ -19,10 +19,26 @@ def _load_project_config() -> dict:
     return {}
 
 
+def _is_conda_env() -> bool:
+    """True when sys.prefix is a conda/mamba environment (not a venv).
+
+    "conda-meta" is the reliable signal — it's always present in a real
+    conda/mamba env root regardless of activation state. CONDA_PREFIX is
+    checked too, as a fallback for the rare env missing that directory.
+    """
+    if (pathlib.Path(sys.prefix) / "conda-meta").is_dir():
+        return True
+    return os.environ.get("CONDA_PREFIX") == sys.prefix
+
+
 def _default_packages_dir() -> pathlib.Path:
     # Inside a virtual environment → keep packages alongside the venv itself
     if sys.prefix != sys.base_prefix:
         return pathlib.Path(sys.prefix) / "hepyy_packages"
+    # Inside a conda/mamba env (no venv layered on top) → keep packages under
+    # the env's own share/ dir, next to where hepyy itself is installed
+    if _is_conda_env():
+        return pathlib.Path(sys.prefix) / "share" / "hepyy_packages"
     return pathlib.Path.cwd() / "packages"
 
 
@@ -35,7 +51,8 @@ def get_packages_dir() -> pathlib.Path:
       3. .hepyy.toml  packages_dir key
       4. .hepyy.toml  build_dir key   (legacy alias)
       5. <venv>/hepyy_packages/  when running inside a venv
-      6. ./packages/  otherwise
+      6. <conda env>/share/hepyy_packages/  when running inside a conda/mamba env
+      7. ./packages/  otherwise
     """
     for key in ("HEPYY_PACKAGES_DIR", "HEPYY_BUILD_DIR"):
         if key in os.environ:
