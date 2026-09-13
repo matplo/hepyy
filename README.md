@@ -42,7 +42,7 @@ Create and activate a virtual environment, then install hepyy:
 python -m venv myenv
 source myenv/bin/activate
 
-# From PyPI (once published):
+# From PyPI:
 pip install hepyy
 
 # Or directly from GitHub (no clone needed):
@@ -60,6 +60,29 @@ git clone https://github.com/matplo/hepyy
 cd hepyy
 pip install -e .
 ```
+
+### Installing via conda (optional)
+
+hepyy isn't on conda-forge, but it can still be installed straight from PyPI
+inside an activated conda/mamba environment:
+
+```bash
+# conda >=26.5: opt into the rattler solver, then install via the conda-pypi
+# bridge channel (mirrors PyPI packages as installable conda packages)
+conda config --set solver rattler
+conda config --append channels conda-pypi
+conda install hepyy
+
+# Older conda: just use pip inside the activated conda env — no solver or
+# channel setup needed, and it works on any conda version
+pip install hepyy
+```
+
+> **Note:** the `conda-pypi` channel mirrors PyPI on its own schedule, so a
+> release published minutes ago may not have propagated there yet.
+> `pip install -U hepyy` inside the same conda env always gets the latest
+> release immediately. See [Configuration reference](#configuration-reference)
+> below for where hepyy stores its package builds inside a conda env.
 
 ---
 
@@ -858,6 +881,7 @@ and `{<name>_prefix}` for every package currently in the registry.
 | Env var | `HEPYY_PACKAGES_DIR` | `export HEPYY_PACKAGES_DIR=/opt/hep` |
 | `.hepyy.toml` | `packages_dir` | `packages_dir = "/opt/hep"` |
 | Default (venv) | — | `<venv>/hepyy_packages/` |
-| Default (no venv) | — | `./packages/` |
+| Default (conda/mamba env, no venv) | — | `<conda env>/share/hepyy_packages/` |
+| Default (no venv, no conda) | — | `./packages/` |
 
 Legacy env var `HEPYY_BUILD_DIR` and toml key `build_dir` are still accepted.
