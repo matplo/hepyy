@@ -28,12 +28,19 @@ classifiers = [
 dependencies = [
     "cppyy>=3.1",
     "click>=8.1",
-    "requests>=2.31,<=2.32.4",
     "tqdm>=4.66",
     "pyyaml>=6.0",
     "jinja2>=3.0",
     "tomli>=2.0; python_version < '3.11'",
 ]
+# No 'requests' dependency: downloads use stdlib urllib.request instead. This
+# used to be requests>=2.31,<=2.32.4 — the upper bound existed only to avoid
+# a pip resolver conflict with Google Colab's exact requests==2.32.4 pin, and
+# requests itself was only needed because fastjet.fr used to 403 urllib's
+# default User-Agent on redirect. Verified (2026-09) that fastjet.fr's fix
+# (server upgrade) resolved that, both locally and in a live, connected Colab
+# runtime, for every recipe download domain — see the commit that removed
+# this dependency for the full verification.
 
 [project.urls]
 Homepage = "https://github.com/matplo/hepyy"

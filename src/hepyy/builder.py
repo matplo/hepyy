@@ -8,7 +8,6 @@ import tarfile
 import tempfile
 from typing import Optional
 
-import requests
 from tqdm import tqdm
 
 from .config import get_build_dir, get_log_dir
@@ -136,15 +135,24 @@ class PackageBuilder:
 
         if not dest.exists():
             print(f"Downloading {url} ...")
-            response = requests.get(url, stream=True, timeout=60)
-            response.raise_for_status()
+            import urllib.error
+            import urllib.request
+            try:
+                response = urllib.request.urlopen(url, timeout=60)
+            except urllib.error.HTTPError as exc:
+                raise BuildError(f"Download failed: HTTP {exc.code} for {url}") from exc
+            except urllib.error.URLError as exc:
+                raise BuildError(f"Download failed: {exc.reason} for {url}") from exc
             total = int(response.headers.get("content-length", 0))
             tmp_dest = dest.with_suffix(dest.suffix + ".part")
             try:
-                with open(tmp_dest, "wb") as f, tqdm(
+                with response, open(tmp_dest, "wb") as f, tqdm(
                     total=total, unit="B", unit_scale=True, desc=filename
                 ) as bar:
-                    for chunk in response.iter_content(chunk_size=8192):
+                    while True:
+                        chunk = response.read(8192)
+                        if not chunk:
+                            break
                         f.write(chunk)
                         bar.update(len(chunk))
                 tmp_dest.rename(dest)
