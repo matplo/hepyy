@@ -181,7 +181,7 @@ class PackageBuilder:
 
         return extract_dir
 
-    def _run(self, cmd: list, cwd: pathlib.Path, log_path: pathlib.Path, env: dict | None = None) -> None:
+    def _run(self, cmd: list, cwd: pathlib.Path, log_path: pathlib.Path, env: Optional[dict] = None) -> None:
         run_env = env if env is not None else self._base_env()
         mode = "a"
         with open(log_path, mode) as log:
