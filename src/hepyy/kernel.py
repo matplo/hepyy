@@ -117,6 +117,15 @@ def install_kernel(
     if sys_dirs:
         env["HEPYY_SYSTEM_PACKAGES_DIR"] = os.pathsep.join(str(d) for d in sys_dirs)
 
+    # Propagate EXTRA_CLING_ARGS if set (e.g. by henv, to fix cppyy-cling's
+    # frozen Clang not recognizing a newer host GCC's headers — see henv's
+    # README). Jupyter launches the kernel in its own process and does not
+    # inherit the shell's env, so without this the fix is silently lost and
+    # `import cppyy` can crash inside the kernel even though it works in
+    # the shell that ran `heyy kernel install`.
+    if "EXTRA_CLING_ARGS" in os.environ:
+        env["EXTRA_CLING_ARGS"] = os.environ["EXTRA_CLING_ARGS"]
+
     kernel_spec = {
         "argv": [sys.executable, "-m", "ipykernel_launcher", "-f", "{connection_file}"],
         "display_name": display_name,
