@@ -432,6 +432,39 @@ export LHAPDF_DATA_PATH=/data/pdfsets:$LHAPDF_DATA_PATH
 
 ---
 
+## One-line shell setup (recommended)
+
+Add a single line to your shell config, once per machine, and completion +
+module search path wire themselves up automatically every time you activate
+a venv or conda env that has `heyy` installed — and stay out of the way
+everywhere else (including after `pip uninstall hepyy`, with nothing left
+behind to clean up, since it never writes anything into the env itself):
+
+**Bash** — add to `~/.bashrc`:
+```bash
+eval "$(heyy shell-init)"
+```
+
+**Zsh** — add to `~/.zshrc`:
+```zsh
+eval "$(heyy shell-init)"
+```
+
+**Fish** — add to `~/.config/fish/config.fish`:
+```fish
+heyy shell-init --shell fish | source
+```
+
+This defines the `module load/unload/list/avail` shim (see
+[Shell module system](#shell-module-system) below) and, on bash/zsh, checks on
+every prompt whether the active venv/conda env changed (neither shell has a
+native "env activated" event); fish uses its native `--on-variable` event
+instead, so it fires exactly on activate/deactivate with no polling. Either
+way, it only does anything once `heyy` is actually on `PATH`.
+
+`heyy completion` and `heyy modules` (below) remain available standalone if
+you'd rather wire them up yourself, or only want one of the two.
+
 ## Shell completion
 
 Enable tab completion for `heyy`, `her`, and `hepyy` in one line.
@@ -504,14 +537,16 @@ module list
 
 ### Python auto-load via `module load`
 
-`heyy generate-modules` installs a `hepyy_autoload.pth` file into the venv's
-`site-packages`. Python processes `.pth` files at startup, so any package loaded
-with `module load` before starting Python is available to import directly — no
-`hepyy.load()` call needed:
+A `hepyy_autoload.pth` file ships with the package itself (installed straight
+into `site-packages` by a regular `pip install hepyy`, and removed automatically
+by `pip uninstall hepyy` — no separate step needed). Python processes `.pth`
+files at startup, so any package loaded with `module load` before starting
+Python is available to import directly — no `hepyy.load()` call needed.
+(Editable/dev installs — `pip install -e .` — are the one case that still
+needs `heyy generate-modules` once to write it.)
 
 ```bash
 eval "$(heyy modules)"            # register modulefiles dir (once, or in ~/.bashrc)
-heyy generate-modules             # write modulefiles + install autoload hook
 
 module load fastjet
 module load pythia8

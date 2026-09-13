@@ -41,6 +41,10 @@ def _complete_installed(ctx, param, incomplete):
 @click.version_option(message="%(prog)s %(version)s")
 def cli():
     """hepyy — HEP C++ package manager with cppyy bindings."""
+    ctx = click.get_current_context()
+    if ctx.invoked_subcommand not in (None, "init") and not get_registry_path().exists():
+        click.echo("[heyy] first run — initializing ...", err=True)
+        _do_init_with_stdout_redirected_to_stderr()
 
 
 # ---------------------------------------------------------------------------
@@ -199,9 +203,47 @@ def info(package):
 # init
 # ---------------------------------------------------------------------------
 
-@cli.command()
-def init():
-    """Create packages directory, registry skeleton, and check cppyy."""
+def _do_init_with_stdout_redirected_to_stderr():
+    """Run _do_init() with real fd 1 pointed at fd 2, then restore it.
+
+    _do_init() (via recipe_sources.add_source's `git clone`/print and
+    cppyy_fix's install_name_tool/print) writes some of its status text
+    through bare print()/inherited-stdout subprocesses rather than
+    click.echo(err=True), so a plain sys.stdout swap wouldn't catch it.
+    Redirecting the actual OS file descriptor catches all of it — needed
+    only for the *auto*-init path, since several heyy commands (shell-init,
+    completion, modules) are meant to have their stdout captured with
+    eval "$(...)", and this must never land inside that capture. The
+    explicit 'heyy init' command calls _do_init() directly, unredirected,
+    so its output stays on stdout as normal for an interactively-run command.
+    """
+    import os
+    import sys
+    sys.stdout.flush()
+    saved_fd = os.dup(1)
+    try:
+        os.dup2(2, 1)
+        _do_init()
+    finally:
+        sys.stdout.flush()
+        os.dup2(saved_fd, 1)
+        os.close(saved_fd)
+
+
+def _do_init():
+    """Create packages directory, registry skeleton, and check cppyy.
+
+    Shared by the 'init' command and the auto-init path in cli() (which
+    runs this once, quietly, on the first subcommand of a fresh env).
+
+    All output goes to stderr: several heyy commands (shell-init, completion,
+    modules) are designed to have their stdout captured by `eval "$(...)"`,
+    and if auto-init fires underneath one of those, status text on stdout
+    would corrupt the shell script being eval'd.
+    """
+    def echo(msg=""):
+        click.echo(msg, err=True)
+
     pkg_dir = get_packages_dir()
     pkg_dir.mkdir(parents=True, exist_ok=True)
     (pkg_dir / "logs").mkdir(exist_ok=True)
@@ -210,23 +252,23 @@ def init():
     if not reg_path.exists():
         import json
         reg_path.write_text(json.dumps({"schema_version": 1, "packages": {}}, indent=2))
-        click.echo(f"Created registry: {reg_path}")
+        echo(f"Created registry: {reg_path}")
     else:
-        click.echo(f"Registry already exists: {reg_path}")
-    click.echo(f"Packages directory: {pkg_dir}")
+        echo(f"Registry already exists: {reg_path}")
+    echo(f"Packages directory: {pkg_dir}")
 
     # Auto-register the canonical hepyy-recipes repo if not already present
     _RECIPES_REPO = "https://github.com/matplo/hepyy-recipes"
     from .recipe_sources import list_sources, add_source
     existing_urls = {s["url"] for s in list_sources()}
     if _RECIPES_REPO not in existing_urls:
-        click.echo(f"\nFetching recipes from {_RECIPES_REPO} ...")
+        echo(f"\nFetching recipes from {_RECIPES_REPO} ...")
         try:
             add_source(_RECIPES_REPO)
         except Exception as exc:
-            click.echo(f"  Warning: could not fetch recipes ({exc}). Run 'hepyy recipe update' later.", err=True)
+            echo(f"  Warning: could not fetch recipes ({exc}). Run 'hepyy recipe update' later.")
     else:
-        click.echo("Recipe source: already registered")
+        echo("Recipe source: already registered")
 
     # Check cppyy backend and auto-fix — only when libCling is inside this venv.
     # Importing cppyy_backend on shared HPC environments (where libCling lives
@@ -236,30 +278,29 @@ def init():
     if is_in_venv():
         lib = _find_libcling()
         if lib is None:
-            click.echo("cppyy backend: not found (cppyy not installed?)")
+            echo("cppyy backend: not found (cppyy not installed?)")
         elif libcling_in_venv(lib):
             from .cppyy_fix import fix_cppyy, check_cppyy, get_broken_deps
             if check_cppyy():
-                click.echo("cppyy backend: OK")
+                echo("cppyy backend: OK")
             else:
                 broken = get_broken_deps(lib)
-                click.echo(f"\ncppyy backend: {len(broken)} broken library path(s) in {lib}:")
+                echo(f"\ncppyy backend: {len(broken)} broken library path(s) in {lib}:")
                 for p in broken:
-                    click.echo(f"  {p}")
-                click.echo("Auto-fixing (library is inside this venv) ...")
+                    echo(f"  {p}")
+                echo("Auto-fixing (library is inside this venv) ...")
                 fixed = fix_cppyy(verbose=True)
                 if fixed:
-                    click.echo(f"cppyy patched successfully ({len(fixed)} path(s) fixed).")
+                    echo(f"cppyy patched successfully ({len(fixed)} path(s) fixed).")
                 else:
-                    click.echo(
+                    echo(
                         "Could not auto-fix (install_name_tool / patchelf missing?).\n"
-                        "Run 'hepyy fix-cppyy' to retry manually.",
-                        err=True,
+                        "Run 'hepyy fix-cppyy' to retry manually."
                     )
         else:
-            click.echo("cppyy backend: skipping check (libCling is outside this venv — run 'hepyy fix-cppyy' if needed)")
+            echo("cppyy backend: skipping check (libCling is outside this venv — run 'hepyy fix-cppyy' if needed)")
     else:
-        click.echo("cppyy backend: skipping check (not in a virtual environment)")
+        echo("cppyy backend: skipping check (not in a virtual environment)")
 
     # Clean up stale .pth from the pre-rename package (heppyyier → hepyy).
     # If the old package was uninstalled before installing hepyy, Python raises
@@ -269,9 +310,19 @@ def init():
     _stale = _site / "heppyyier_autoload.pth"
     if _stale.exists():
         _stale.unlink()
-        click.echo(f"Removed stale heppyyier_autoload.pth from {_site}")
+        echo(f"Removed stale heppyyier_autoload.pth from {_site}")
 
-    click.echo("\nRun 'heyy generate-modules' to enable 'module load' auto-loading.")
+    # Regular (non-editable) installs already ship hepyy_autoload.pth at the
+    # wheel root (see pyproject.toml force-include) — only editable/dev
+    # installs (pip install -e .) need 'generate-modules' to write it.
+    if not (_site / "hepyy_autoload.pth").exists():
+        echo("\nRun 'heyy generate-modules' to enable 'module load' auto-loading.")
+
+
+@cli.command()
+def init():
+    """Create packages directory, registry skeleton, and check cppyy."""
+    _do_init()
 
 
 # ---------------------------------------------------------------------------
@@ -404,10 +455,36 @@ def demos(dest, overwrite):
 # ---------------------------------------------------------------------------
 
 @cli.command("shell-init")
-def shell_init():
-    """Print shell function definition for eval (enables module load/unload)."""
+@click.option(
+    "--shell", "shell_type",
+    type=click.Choice(["bash", "zsh", "fish"]),
+    default=None,
+    help="Shell type (default: auto-detected from $SHELL).",
+)
+def shell_init(shell_type):
+    """Print shell integration for eval — one-time setup, then it self-wires.
+
+    \b
+    Bash/zsh — add to ~/.bashrc / ~/.zshrc:
+        eval "$(heyy shell-init)"
+
+    \b
+    Fish — add to ~/.config/fish/config.fish:
+        heyy shell-init --shell fish | source
+
+    Defines the 'module load/unload/list/avail' shim (bash/zsh) and a hook
+    that re-wires completion + 'module use <modulefiles>' every time you
+    activate or deactivate a venv/conda env — no per-env files, and it's a
+    no-op wherever heyy isn't installed (including after 'pip uninstall').
+    """
+    import os
     from .shell import shell_init_script
-    click.echo(shell_init_script(), nl=False)
+
+    if shell_type is None:
+        sh = os.environ.get("SHELL", "")
+        shell_type = "fish" if "fish" in sh else ("zsh" if "zsh" in sh else "bash")
+
+    click.echo(shell_init_script(shell_type), nl=False)
 
 
 # ---------------------------------------------------------------------------
