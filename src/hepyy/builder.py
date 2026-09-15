@@ -25,6 +25,31 @@ def _resolve_lib_dir(prefix: pathlib.Path) -> pathlib.Path:
     return lib
 
 
+def _recipe_record(recipe: Recipe, prefix: pathlib.Path, version: str, log_path: Optional[pathlib.Path]) -> dict:
+    """Build a registry record dict for `recipe` installed at `prefix`.
+
+    Shared by a normal build (PackageBuilder._make_registry_record) and by
+    _copy_prebuilt's "reuse an already-built package" path, so both produce
+    identically-shaped records without duplicating the builtin-recipe-path
+    logic below.
+    """
+    builtin_dir = pathlib.Path(__file__).parent / "recipes"
+    src = recipe.source_path
+    recipe_path = (
+        str(src) if src and not str(src).startswith(str(builtin_dir)) else None
+    )
+    return {
+        "version": version,
+        "prefix": str(prefix),
+        "include_dir": str(prefix / "include"),
+        "lib_dir": str(_resolve_lib_dir(prefix)),
+        "depends_on": recipe.depends_on,
+        "python_paths": recipe.python_paths,
+        "build_log": str(log_path) if log_path else None,
+        "recipe_path": recipe_path,
+    }
+
+
 class PackageBuilder:
     def __init__(
         self,
@@ -370,21 +395,46 @@ class PackageBuilder:
     def _make_registry_record(
         self, prefix: pathlib.Path, version: str, log_path: pathlib.Path
     ) -> dict:
-        builtin_dir = pathlib.Path(__file__).parent / "recipes"
-        src = self.recipe.source_path
-        recipe_path = (
-            str(src) if src and not str(src).startswith(str(builtin_dir)) else None
-        )
-        return {
-            "version": version,
-            "prefix": str(prefix),
-            "include_dir": str(prefix / "include"),
-            "lib_dir": str(_resolve_lib_dir(prefix)),
-            "depends_on": self.recipe.depends_on,
-            "python_paths": self.recipe.python_paths,
-            "build_log": str(log_path),
-            "recipe_path": recipe_path,
-        }
+        return _recipe_record(self.recipe, prefix, version, log_path)
+
+
+def _copy_prebuilt(recipe: Recipe, existing_record: dict, version: str, to_dir: pathlib.Path, reg) -> dict:
+    """Reuse an already-built package (found in the current instance's own
+    default registry) for a 'heyy install --to <folder>' instead of
+    rebuilding from source: copy the already-compiled prefix (not the source
+    tree, no recompilation), then regenerate — not copy — env.sh/env-unset.sh
+    and the modulefile for the new location, since the copied prefix's own
+    copies of those two files would otherwise carry the old absolute paths
+    verbatim (hepyy writes them as literal text, not templated at load time).
+    """
+    existing_prefix = pathlib.Path(existing_record["prefix"])
+    new_prefix = to_dir / recipe.name / version
+
+    print(f"Reusing already-built {recipe.name} {version} from {existing_prefix} (no rebuild) ...")
+    if new_prefix.exists():
+        shutil.rmtree(new_prefix)
+    new_prefix.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(existing_prefix, new_prefix)
+
+    new_log = None
+    old_log = existing_record.get("build_log")
+    if old_log and pathlib.Path(old_log).is_file():
+        log_dir = to_dir / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        new_log = log_dir / pathlib.Path(old_log).name
+        shutil.copy2(old_log, new_log)
+
+    generate_env_scripts(recipe.name, version, new_prefix, python_paths=recipe.python_paths)
+    if recipe.generate_modulefile:
+        write_tcl_modulefile(recipe.name, version, new_prefix,
+                             python_paths=recipe.python_paths,
+                             depends_on=recipe.depends_on,
+                             modulefiles_dir=to_dir / "modulefiles")
+
+    record = _recipe_record(recipe, new_prefix, version, new_log)
+    reg.register(recipe.name, record)
+    print(f"{recipe.name} {version} copied to {new_prefix}")
+    return record
 
 
 def build_package(
@@ -421,6 +471,21 @@ def build_package(
             "Use --force or --clean to rebuild."
         )
         return existing
+
+    # 'heyy install --to <folder>': if this exact package+version is already
+    # built in the current instance's own default registry, reuse it (copy
+    # the built prefix) instead of rebuilding from source. Deliberately
+    # checks get_registry() here, not 'reg' (the to_dir-scoped registry just
+    # checked above, which is where a match would have already returned).
+    if to_dir is not None and not force and not clean:
+        wanted_version = version or recipe.version
+        default_existing = get_registry().get(recipe.name)
+        if (
+            default_existing is not None
+            and default_existing.get("version") == wanted_version
+            and pathlib.Path(default_existing.get("prefix", "")).is_dir()
+        ):
+            return _copy_prebuilt(recipe, default_existing, wanted_version, to_dir, reg)
 
     # Auto-install any depends_on packages that are not yet in the registry.
     # Pass redownload through so a stale cached tarball doesn't block the dep
