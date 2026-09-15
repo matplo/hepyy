@@ -42,24 +42,29 @@ Create and activate a virtual environment, then install hepyy:
 python -m venv myenv
 source myenv/bin/activate
 
-# From PyPI:
-pip install hepyy
+# From PyPI (the [cppyy] extra also installs cppyy itself — see note below):
+pip install "hepyy[cppyy]"
 
 # Or directly from GitHub (no clone needed):
-pip install git+https://github.com/matplo/hepyy.git
+pip install "hepyy[cppyy] @ git+https://github.com/matplo/hepyy.git"
 
 # To update to the latest version (once inside an activated venv):
 heyy upgrade
 
 # Or manually with pip / uv:
-pip install --force-reinstall git+https://github.com/matplo/hepyy.git
-uv pip install --reinstall git+https://github.com/matplo/hepyy.git
+pip install --force-reinstall "hepyy[cppyy] @ git+https://github.com/matplo/hepyy.git"
+uv pip install --reinstall "hepyy[cppyy] @ git+https://github.com/matplo/hepyy.git"
 
 # Or from a local clone (editable install for development):
 git clone https://github.com/matplo/hepyy
 cd hepyy
-pip install -e .
+pip install -e ".[cppyy]"
 ```
+
+> **Already have cppyy?** (e.g. via conda/ROOT — see below) Just `pip install hepyy`,
+> no `[cppyy]` extra. cppyy isn't a hard dependency specifically so that pip never
+> tries to install or upgrade it when a compatible one is already present — the
+> `[cppyy]` extra is only needed when nothing already provides it.
 
 ### Installing via conda (optional)
 
@@ -78,7 +83,17 @@ conda install hepyy
 pip install hepyy
 ```
 
-> **Note:** the `conda-pypi` channel mirrors PyPI on its own schedule, so a
+> **Note:** both routes above deliberately install plain `hepyy`, **not**
+> `hepyy[cppyy]`. If this conda env already has a working cppyy — for example
+> because you installed CERN's `root` package, which pulls in matched
+> conda-forge `cppyy`/`cppyy-backend`/`cppyy-cling`/`CPyCppyy` packages — this
+> leaves it alone rather than having pip try to install or upgrade its own
+> copy (which risks an ABI mismatch against that matched set). If this conda
+> env has no cppyy at all, use `pip install hepyy[cppyy]` instead (the
+> `conda-pypi` bridge only mirrors the base package, not extras) or install
+> cppyy separately via `conda install -c conda-forge cppyy`.
+>
+> Also: the `conda-pypi` channel mirrors PyPI on its own schedule, so a
 > release published minutes ago may not have propagated there yet.
 > `pip install -U hepyy` inside the same conda env always gets the latest
 > release immediately. See [Configuration reference](#configuration-reference)
@@ -92,8 +107,8 @@ hepyy works in [Google Colab](https://colab.research.google.com) without any loc
 Use `!` to run shell commands from a notebook cell:
 
 ```python
-# Cell 1 — install hepyy
-!pip install git+https://github.com/matplo/hepyy.git
+# Cell 1 — install hepyy (Colab has no cppyy preinstalled, so use the [cppyy] extra)
+!pip install "hepyy[cppyy] @ git+https://github.com/matplo/hepyy.git"
 
 # Cell 2 — initialise (creates package store, patches cppyy)
 !hepyy init
@@ -327,6 +342,13 @@ h.Fill(42)
 
 **ROOT ships its own cppyy and cling** — a different build from the pip-installed cppyy
 that hepyy uses for FastJet, Pythia8, etc. Because of this:
+
+> This is exactly the scenario the `cppyy` extra (see [Installation](#installation))
+> exists for: if ROOT already provides a working cppyy — whether built via `heyy
+> install root` above, or via a conda-forge `root` install (see
+> [Installing via conda](#installing-via-conda-optional)) — install plain
+> `hepyy`, not `hepyy[cppyy]`, so pip never tries to install a second, separate
+> cppyy alongside ROOT's.
 
 - `hepyy.load("root")` only adds ROOT's `lib/` directory to `sys.path`; it does
   **not** import pip-cppyy. ROOT's `_facade.py` then finds ROOT's own `cppyy` package

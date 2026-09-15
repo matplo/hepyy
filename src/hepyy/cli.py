@@ -296,7 +296,10 @@ def _do_init():
     if is_in_venv():
         lib = _find_libcling()
         if lib is None:
-            echo("cppyy backend: not found (cppyy not installed?)")
+            echo(
+                "cppyy backend: not found — run 'pip install hepyy[cppyy]' "
+                "(or 'pip install cppyy')"
+            )
         elif libcling_in_venv(lib):
             from .cppyy_fix import fix_cppyy, check_cppyy, get_broken_deps
             if check_cppyy():
@@ -318,7 +321,25 @@ def _do_init():
         else:
             echo("cppyy backend: skipping check (libCling is outside this venv — run 'hepyy fix-cppyy' if needed)")
     else:
-        echo("cppyy backend: skipping check (not in a virtual environment)")
+        # Not a venv (conda env or system Python) — never import cppyy_backend
+        # here (that's exactly what can trigger a PCH rebuild loop on a
+        # shared/HPC filesystem). importlib.util.find_spec() only locates the
+        # module without executing it, so it's safe to use for a presence
+        # check even in that case.
+        from importlib.util import find_spec
+        from .config import _is_conda_env
+        if find_spec("cppyy") is not None:
+            echo("cppyy backend: skipping deep check (not in a venv) — cppyy is present")
+        elif _is_conda_env():
+            echo(
+                "cppyy backend: not found — run 'conda install -c conda-forge "
+                "cppyy' (or install ROOT) in this env"
+            )
+        else:
+            echo(
+                "cppyy backend: not found — run 'pip install hepyy[cppyy]' "
+                "(or 'pip install cppyy')"
+            )
 
     # Clean up stale .pth from the pre-rename package (heppyyier → hepyy).
     # If the old package was uninstalled before installing hepyy, Python raises
@@ -387,7 +408,12 @@ def fix_cppyy_cmd(check):
     from .cppyy_fix import fix_cppyy, check_cppyy, _find_libcling, get_broken_deps
     lib = _find_libcling()
     if lib is None:
-        click.echo("cppyy backend not found (is cppyy installed?).", err=True)
+        click.echo(
+            "cppyy backend not found. Install it with 'pip install hepyy[cppyy]' "
+            "(plain venv/Colab), or on conda, 'conda install -c conda-forge "
+            "cppyy' (or install ROOT).",
+            err=True,
+        )
         sys.exit(1)
     click.echo(f"Backend: {lib}")
     broken = get_broken_deps(lib)

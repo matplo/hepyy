@@ -393,7 +393,10 @@ class Loader:
             import cppyy
         except ImportError:
             raise ImportError(
-                "cppyy is not installed. Install it with: pip install cppyy"
+                "cppyy is not installed. Install it with 'pip install hepyy[cppyy]' "
+                "(plain venv/Colab), or if you're on conda, "
+                "'conda install -c conda-forge cppyy' (or install ROOT, which "
+                "already provides a compatible cppyy)."
             )
 
         cppyy.add_include_path(record["include_dir"])

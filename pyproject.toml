@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hepyy"
-version = "0.2.17"
+version = "0.2.18"
 description = "HEP C++ package manager with cppyy dynamic bindings"
 readme = "README.md"
 license = { text = "MIT" }
@@ -26,7 +26,6 @@ classifiers = [
     "Programming Language :: C++",
 ]
 dependencies = [
-    "cppyy>=3.1",
     "click>=8.1",
     "tqdm>=4.66",
     "pyyaml>=6.0",
@@ -41,6 +40,18 @@ dependencies = [
 # (server upgrade) resolved that, both locally and in a live, connected Colab
 # runtime, for every recipe download domain — see the commit that removed
 # this dependency for the full verification.
+
+# cppyy is an *optional* extra, not a hard dependency: conda users who already
+# have a compatible cppyy (e.g. via CERN ROOT's conda-forge build, which pulls
+# in matched cppyy/cppyy-backend/cppyy-cling/CPyCppyy packages) must not have
+# pip try to touch it. pip's resolver already skips reinstalling a dependency
+# it can see is already satisfied via dist-info (conda-forge's cppyy package
+# does install real dist-info) — but an older conda cppyy would make pip try
+# to upgrade it via pip, risking an ABI mismatch against the conda-forge-built
+# backend/cling/CPyCppyy trio, which must all match exactly. Plain venv/Colab
+# users with no cppyy at all should install with the 'cppyy' extra.
+[project.optional-dependencies]
+cppyy = ["cppyy>=3.1"]
 
 [project.urls]
 Homepage = "https://github.com/matplo/hepyy"
