@@ -399,6 +399,30 @@ class Loader:
         cppyy.add_include_path(record["include_dir"])
 
         lib_path = pathlib.Path(record["lib_dir"])
+
+        # Prepend this package's own lib_dir to DYLD/LD_LIBRARY_PATH so that a
+        # library loaded below can resolve its *own* transitive dependencies
+        # at dlopen time (e.g. fjcontrib's contribs needing fastjet's separate
+        # libfastjettools.so.0) — loading a library by absolute path (below)
+        # only helps the dynamic linker find that one library, not whatever
+        # it in turn depends on. Dependencies are always loaded first (see
+        # the topo-sort in load()), so by the time a downstream package gets
+        # here, every dependency's lib_dir is already in these vars — no need
+        # to separately walk recipe.depends_on. Skip a dir that ships libcling
+        # (same reasoning as the strip above); dedupe so a long session with
+        # many loads doesn't grow these unboundedly. On Linux, glibc's
+        # dlopen() re-reads these from the environment on every call, so this
+        # mutation does affect the ctypes.CDLL calls right below; macOS's dyld
+        # caches the env at process start (see kernel.py), so this may be a
+        # no-op there — harmless either way.
+        if lib_path.is_dir():
+            _cling_names = ("libcling.dylib", "libcling.so", "libCling.dylib", "libCling.so")
+            if not any((lib_path / n).exists() for n in _cling_names):
+                _lib_dir_str = str(lib_path)
+                for _var in ("DYLD_LIBRARY_PATH", "LD_LIBRARY_PATH"):
+                    _val = os.environ.get(_var, "")
+                    if _lib_dir_str not in [p for p in _val.split(":") if p]:
+                        os.environ[_var] = f"{_lib_dir_str}:{_val}" if _val else _lib_dir_str
         for lib_name in libraries:
             loaded = False
             for ext in (".dylib", ".so"):
