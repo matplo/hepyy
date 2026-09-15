@@ -448,6 +448,8 @@ def build_package(
     clean: bool = False,
     extra_vars: dict = None,
     to_dir: Optional[pathlib.Path] = None,
+    force_all: bool = False,
+    clean_all: bool = False,
 ) -> dict:
     from .recipe import find_recipe
     from .registry import get_registry, Registry
@@ -455,6 +457,12 @@ def build_package(
     recipe = find_recipe(name, version=version, recipe_path=recipe_path)
     if njobs is not None:
         recipe.make_jobs = njobs
+
+    # --force-all/--clean-all also force/clean the named package itself (not
+    # only its dependencies below), so everything downstream can keep keying
+    # off plain 'force'/'clean' unchanged.
+    force = force or force_all
+    clean = clean or clean_all
 
     # 'heyy install --to <folder>' makes <folder> a complete, self-contained
     # stand-in for the packages dir for this install (and anything it pulls
@@ -472,7 +480,11 @@ def build_package(
         )
         return existing
 
-    # Auto-install any depends_on packages that are not yet in the registry.
+    # Auto-install any depends_on packages that are not yet in the registry —
+    # or, with --force-all/--clean-all, visit them even if they already are,
+    # so the whole chain gets forced/cleaned too (plain --force/--clean have
+    # only ever applied to the exact named package; already-installed
+    # dependencies are otherwise always left alone, --to or not).
     # Pass redownload through so a stale cached tarball doesn't block the dep
     # build, and to_dir through so the whole dependency chain lands together.
     # Deliberately runs before the reuse-copy check below (not after): a
@@ -481,9 +493,10 @@ def build_package(
     # silently skipping every package it lists — <folder> must be complete
     # even when the top-level package itself needs nothing but a copy.
     for dep in recipe.depends_on:
-        if not reg.is_installed(dep):
+        if not reg.is_installed(dep) or force_all or clean_all:
             print(f"[{name}/{recipe.version}] Installing dependency: {dep}")
-            build_package(dep, verbose=verbose, njobs=njobs, redownload=redownload, to_dir=to_dir)
+            build_package(dep, verbose=verbose, njobs=njobs, redownload=redownload, to_dir=to_dir,
+                           force=force_all, clean=clean_all, force_all=force_all, clean_all=clean_all)
 
     # Reload before continuing: a dependency just installed above must be
     # visible both to the reuse-copy check just below (were it to check

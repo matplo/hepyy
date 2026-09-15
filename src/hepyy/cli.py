@@ -56,8 +56,12 @@ def cli():
 @click.option("--version", "-v", default=None, help="Package version (single-package installs only).")
 @click.option("--recipe", "recipe_path", default=None, help="Path to a YAML recipe file (single-package installs only).")
 @click.option("--force", is_flag=True, help="Re-extract source and rebuild (keeps cached tarball).")
+@click.option("--force-all", is_flag=True,
+              help="Like --force, but also cascades into every already-installed dependency.")
 @click.option("--redownload", is_flag=True, help="Delete cached tarball and re-download before rebuilding.")
 @click.option("--clean", is_flag=True, help="Clean build artifacts and rebuild, keeping the extracted source tree.")
+@click.option("--clean-all", is_flag=True,
+              help="Like --clean, but also cascades into every already-installed dependency.")
 @click.option("--verbose", is_flag=True, help="Show build output in terminal.")
 @click.option("--njobs", "-j", default=None, type=int, help="Override parallel make jobs (overrides recipe default of 4).")
 @click.option("--set", "-s", "set_vars", multiple=True, metavar="KEY=VALUE",
@@ -76,7 +80,7 @@ def cli():
         "'heyy registry --add <TO>/registry.json' — no rebuild, no env vars."
     ),
 )
-def install(packages, version, recipe_path, force, redownload, clean, verbose, njobs, set_vars, to_dir):
+def install(packages, version, recipe_path, force, force_all, redownload, clean, clean_all, verbose, njobs, set_vars, to_dir):
     """Download, build, and register one or more HEP C++ packages (in order)."""
     from .builder import build_package
     extra_vars = dict(kv.split("=", 1) for kv in set_vars if "=" in kv)
@@ -86,7 +90,7 @@ def install(packages, version, recipe_path, force, redownload, clean, verbose, n
         _recipe_path = recipe_path if len(packages) == 1 else None
         if len(packages) > 1:
             click.echo(f"\n[{i+1}/{len(packages)}] Installing {package} ...")
-        build_package(package, version=_version, recipe_path=_recipe_path, force=force, redownload=redownload, clean=clean, verbose=verbose, njobs=njobs, extra_vars=extra_vars, to_dir=to_dir)
+        build_package(package, version=_version, recipe_path=_recipe_path, force=force, redownload=redownload, clean=clean, verbose=verbose, njobs=njobs, extra_vars=extra_vars, to_dir=to_dir, force_all=force_all, clean_all=clean_all)
 
 
 # ---------------------------------------------------------------------------
