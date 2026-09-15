@@ -472,11 +472,33 @@ def build_package(
         )
         return existing
 
+    # Auto-install any depends_on packages that are not yet in the registry.
+    # Pass redownload through so a stale cached tarball doesn't block the dep
+    # build, and to_dir through so the whole dependency chain lands together.
+    # Deliberately runs before the reuse-copy check below (not after): a
+    # meta/bundle package that's just a list of depends_on with little or no
+    # payload of its own would otherwise get reuse-copied and return early,
+    # silently skipping every package it lists — <folder> must be complete
+    # even when the top-level package itself needs nothing but a copy.
+    for dep in recipe.depends_on:
+        if not reg.is_installed(dep):
+            print(f"[{name}/{recipe.version}] Installing dependency: {dep}")
+            build_package(dep, verbose=verbose, njobs=njobs, redownload=redownload, to_dir=to_dir)
+
+    # Reload before continuing: a dependency just installed above must be
+    # visible both to the reuse-copy check just below (were it to check
+    # 'reg' — it doesn't, see there) and to _run_custom_script()'s
+    # {name}_prefix template lookups once a real build happens.
+    # get_registry() returns a shared singleton so this is a no-op there;
+    # the --to path constructs a fresh Registry per call, so it actually
+    # needs the reload to see what the recursive call above just wrote.
+    reg = Registry(path=to_dir / "registry.json") if to_dir is not None else get_registry()
+
     # 'heyy install --to <folder>': if this exact package+version is already
     # built in the current instance's own default registry, reuse it (copy
     # the built prefix) instead of rebuilding from source. Deliberately
-    # checks get_registry() here, not 'reg' (the to_dir-scoped registry just
-    # checked above, which is where a match would have already returned).
+    # checks get_registry() here, not 'reg' (the to_dir-scoped registry
+    # already checked above, where a match would have already returned).
     if to_dir is not None and not force and not clean:
         wanted_version = version or recipe.version
         default_existing = get_registry().get(recipe.name)
@@ -486,21 +508,6 @@ def build_package(
             and pathlib.Path(default_existing.get("prefix", "")).is_dir()
         ):
             return _copy_prebuilt(recipe, default_existing, wanted_version, to_dir, reg)
-
-    # Auto-install any depends_on packages that are not yet in the registry.
-    # Pass redownload through so a stale cached tarball doesn't block the dep
-    # build, and to_dir through so the whole dependency chain lands together.
-    for dep in recipe.depends_on:
-        if not reg.is_installed(dep):
-            print(f"[{name}/{recipe.version}] Installing dependency: {dep}")
-            build_package(dep, verbose=verbose, njobs=njobs, redownload=redownload, to_dir=to_dir)
-
-    # Reload before building: a dependency just installed above must be
-    # visible to _run_custom_script()'s {name}_prefix template lookups.
-    # get_registry() returns a shared singleton so this is a no-op there;
-    # the --to path constructs a fresh Registry per call, so it actually
-    # needs the reload to see what the recursive call above just wrote.
-    reg = Registry(path=to_dir / "registry.json") if to_dir is not None else get_registry()
 
     builder = PackageBuilder(recipe, verbose=verbose, extra_vars=extra_vars,
                               build_dir_override=to_dir, registry=reg)
