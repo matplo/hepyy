@@ -128,7 +128,8 @@ def get_modulefiles_dir() -> pathlib.Path:
     return get_build_dir() / "modulefiles"
 
 
-def write_tcl_modulefile(name: str, version: str, prefix: pathlib.Path, python_paths=None, depends_on=None) -> pathlib.Path:
+def write_tcl_modulefile(name: str, version: str, prefix: pathlib.Path, python_paths=None, depends_on=None,
+                          modulefiles_dir: Optional[pathlib.Path] = None) -> pathlib.Path:
     """Generate a TCL modulefile for use with Environment Modules / Lmod."""
     NAME = name.upper().replace("-", "_")
     p = prefix
@@ -172,7 +173,7 @@ def write_tcl_modulefile(name: str, version: str, prefix: pathlib.Path, python_p
         lines.append("prepend-path CPATH $prefix/include")
     content = "\n".join(lines) + "\n"
 
-    mod_dir = get_modulefiles_dir() / name
+    mod_dir = (modulefiles_dir or get_modulefiles_dir()) / name
     mod_dir.mkdir(parents=True, exist_ok=True)
     mod_file = mod_dir / version
     mod_file.write_text(content)

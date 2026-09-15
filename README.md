@@ -113,8 +113,23 @@ import cppyy, pythia8, fastjet, fjcontrib
 
 **Notes:**
 - Each Colab runtime is ephemeral — packages must be reinstalled when the runtime resets.
-  The build takes ~10–20 min; consider saving the compiled packages to Google Drive and
-  registering them with `hepyy register` to avoid rebuilding every session.
+  The build takes ~10–20 min; avoid rebuilding every session by building once to persistent
+  storage (e.g. a mounted Drive folder) with `--to`, then reusing it in any future session:
+  ```python
+  # Session 1 — build once, straight to persistent storage
+  from google.colab import drive
+  drive.mount('/content/drive')
+  !heyy install fastjet hepmc3 lhapdf pythia8 fjcontrib --to /content/drive/MyDrive/hepyy_packages --verbose
+
+  # Session 2+ — any future runtime, no rebuild
+  from google.colab import drive
+  drive.mount('/content/drive')
+  !heyy registry --add /content/drive/MyDrive/hepyy_packages/registry.json
+  ```
+  `--to <folder>` makes `<folder>` a self-contained packages dir just for that install
+  (its own `<folder>/<name>/<version>/` layout and `<folder>/registry.json`) — it doesn't
+  touch this instance's own registry. `heyy registry --add` then imports it wholesale into
+  whichever fresh instance runs it, no per-package `hepyy register` calls needed.
 - `--verbose` shows live build output, which is useful in Colab to confirm progress.
 - After `hepyy init`, download the latest demo notebooks with:
   ```

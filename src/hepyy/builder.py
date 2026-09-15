@@ -26,12 +26,36 @@ def _resolve_lib_dir(prefix: pathlib.Path) -> pathlib.Path:
 
 
 class PackageBuilder:
-    def __init__(self, recipe: Recipe, verbose: bool = False, extra_vars: dict = None):
+    def __init__(
+        self,
+        recipe: Recipe,
+        verbose: bool = False,
+        extra_vars: dict = None,
+        build_dir_override: Optional[pathlib.Path] = None,
+        registry=None,
+    ):
         self.recipe = recipe
         self.verbose = verbose
         self.extra_vars = extra_vars or {}  # --set KEY=VALUE overrides for Jinja2 scripts
-        self._build_dir = get_build_dir()
-        self._log_dir = get_log_dir()
+        # build_dir_override (from 'heyy install --to <folder>') makes <folder>
+        # a complete, self-contained stand-in for the packages dir for this one
+        # build: source cache, logs, and install prefix all live under it.
+        self._build_dir_override = build_dir_override
+        if build_dir_override is not None:
+            self._build_dir = build_dir_override
+            self._log_dir = build_dir_override / "logs"
+        else:
+            self._build_dir = get_build_dir()
+            self._log_dir = get_log_dir()
+        # The registry to consult for dependency prefixes in _run_custom_script
+        # (e.g. {name}_prefix template vars). Defaults to the normal registry;
+        # callers overriding build_dir_override should pass the matching
+        # override registry too, so a dependency built into <folder> is found
+        # there rather than in the default instance's registry.
+        if registry is None:
+            from .registry import get_registry
+            registry = get_registry()
+        self._registry = registry
         self._clean_build = False
 
     def build(self, version: Optional[str] = None, force: bool = False, redownload: bool = False, clean: bool = False) -> dict:
@@ -80,9 +104,17 @@ class PackageBuilder:
         generate_env_scripts(self.recipe.name, version, prefix,
                              python_paths=self.recipe.python_paths)
         if self.recipe.generate_modulefile:
+            # Keep modulefiles inside <folder> too when build_dir_override
+            # (--to) is active, rather than leaking one into the current
+            # instance's normal modulefiles dir.
+            _mod_dir = (
+                self._build_dir / "modulefiles"
+                if self._build_dir_override is not None else None
+            )
             write_tcl_modulefile(self.recipe.name, version, prefix,
                                  python_paths=self.recipe.python_paths,
-                                 depends_on=self.recipe.depends_on)
+                                 depends_on=self.recipe.depends_on,
+                                 modulefiles_dir=_mod_dir)
         return self._make_registry_record(prefix, version, log_path)
 
     def _base_env(self) -> dict:
@@ -256,16 +288,16 @@ class PackageBuilder:
         version: str,
         log_path: pathlib.Path,
     ) -> None:
-        from .registry import get_registry
-
         configure_args_str = " ".join(self.recipe.configure_args)
         env = self._base_env()
 
         # Inject {name}_prefix for every package in the registry, not just
         # depends_on — this lets build scripts use optional packages via shell
-        # conditionals without declaring a hard dependency.
+        # conditionals without declaring a hard dependency. Uses self._registry
+        # (the override registry when build_dir_override/--to is active) so a
+        # dependency built into the same <folder> is found there.
         pkg_vars: dict = {}
-        registry = get_registry()
+        registry = self._registry
         for pkg_name, rec in registry.all_packages().items():
             pkg_vars[f"{pkg_name}_prefix"] = rec["prefix"]
 
@@ -365,14 +397,22 @@ def build_package(
     njobs: Optional[int] = None,
     clean: bool = False,
     extra_vars: dict = None,
+    to_dir: Optional[pathlib.Path] = None,
 ) -> dict:
     from .recipe import find_recipe
-    from .registry import get_registry
+    from .registry import get_registry, Registry
 
     recipe = find_recipe(name, version=version, recipe_path=recipe_path)
     if njobs is not None:
         recipe.make_jobs = njobs
-    reg = get_registry()
+
+    # 'heyy install --to <folder>' makes <folder> a complete, self-contained
+    # stand-in for the packages dir for this install (and anything it pulls
+    # in as a dependency) — its own registry.json, not the current instance's.
+    if to_dir is not None:
+        reg = Registry(path=to_dir / "registry.json")
+    else:
+        reg = get_registry()
 
     if reg.is_installed(recipe.name) and not force and not clean:
         existing = reg.get(recipe.name)
@@ -383,19 +423,28 @@ def build_package(
         return existing
 
     # Auto-install any depends_on packages that are not yet in the registry.
-    # Pass redownload through so a stale cached tarball doesn't block the dep build.
+    # Pass redownload through so a stale cached tarball doesn't block the dep
+    # build, and to_dir through so the whole dependency chain lands together.
     for dep in recipe.depends_on:
         if not reg.is_installed(dep):
             print(f"[{name}/{recipe.version}] Installing dependency: {dep}")
-            build_package(dep, verbose=verbose, njobs=njobs, redownload=redownload)
+            build_package(dep, verbose=verbose, njobs=njobs, redownload=redownload, to_dir=to_dir)
 
-    builder = PackageBuilder(recipe, verbose=verbose, extra_vars=extra_vars)
+    # Reload before building: a dependency just installed above must be
+    # visible to _run_custom_script()'s {name}_prefix template lookups.
+    # get_registry() returns a shared singleton so this is a no-op there;
+    # the --to path constructs a fresh Registry per call, so it actually
+    # needs the reload to see what the recursive call above just wrote.
+    reg = Registry(path=to_dir / "registry.json") if to_dir is not None else get_registry()
+
+    builder = PackageBuilder(recipe, verbose=verbose, extra_vars=extra_vars,
+                              build_dir_override=to_dir, registry=reg)
     record = builder.build(version=version or recipe.version, force=force, redownload=redownload, clean=clean)
     # Re-read registry from disk before writing: a build script may have called
     # 'heyy install <dep>' as a subprocess, whose writes are on disk but not in
     # the in-memory 'reg' object loaded above.  Reloading prevents those entries
     # from being silently dropped when we write this package's record.
-    reg = get_registry()
+    reg = Registry(path=to_dir / "registry.json") if to_dir is not None else get_registry()
     reg.register(recipe.name, record)
     print(f"\n{recipe.name} {record['version']} installed at {record['prefix']}")
     return record
