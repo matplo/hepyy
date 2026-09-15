@@ -781,6 +781,79 @@ def recipe_update():
 
 
 # ---------------------------------------------------------------------------
+# registry
+# ---------------------------------------------------------------------------
+
+@cli.command("registry")
+@click.option(
+    "--add", "add_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=pathlib.Path),
+    required=True,
+    help="Merge packages from another heyy registry.json into this instance's registry.",
+)
+@click.option("--yes", "-y", is_flag=True, help="Overwrite existing packages without prompting.")
+def registry_cmd(add_path, yes):
+    """Import package records from another heyy registry.json.
+
+    Lets separate heyy instances (different venvs/conda envs, sharing a
+    filesystem) reuse each other's already-built packages instead of
+    rebuilding them — as long as each record's 'prefix' path is reachable
+    from this instance. Prompts before overwriting a package already present
+    here unless it's identical (same version + prefix) or --yes is given.
+    """
+    import json
+    from .registry import get_registry
+
+    try:
+        data = json.loads(add_path.read_text())
+    except json.JSONDecodeError as exc:
+        click.echo(f"Error: {add_path} is not valid JSON: {exc}", err=True)
+        sys.exit(1)
+
+    incoming = data.get("packages", {})
+    if not incoming:
+        click.echo(f"No packages found in {add_path}.", err=True)
+        return
+
+    reg = get_registry()
+    added = overwritten = skipped = 0
+
+    for name, record in sorted(incoming.items()):
+        version = record.get("version")
+        prefix = record.get("prefix")
+        if not version or not prefix:
+            click.echo(f"  skip  {name}  (record missing 'version' or 'prefix')", err=True)
+            skipped += 1
+            continue
+
+        existing = reg.get(name)
+        if existing is not None:
+            if existing.get("version") == version and existing.get("prefix") == prefix:
+                click.echo(f"  skip  {name}/{version}  (already registered, identical)")
+                skipped += 1
+                continue
+            prompt = (
+                f"'{name}' is already registered here as {existing.get('version', '?')} "
+                f"({existing.get('prefix', '?')}) — overwrite with {version} ({prefix})?"
+            )
+            if not (yes or click.confirm(prompt, default=False)):
+                click.echo(f"  skip  {name}  (kept existing {existing.get('version', '?')})")
+                skipped += 1
+                continue
+            reg.register(name, record)
+            click.echo(f"  overwritten  {name}/{version}")
+            overwritten += 1
+        else:
+            if not pathlib.Path(prefix).exists():
+                click.echo(f"  warning: prefix for '{name}' does not exist here: {prefix}", err=True)
+            reg.register(name, record)
+            click.echo(f"  added  {name}/{version}")
+            added += 1
+
+    click.echo(f"\n{added} added, {overwritten} overwritten, {skipped} skipped.")
+
+
+# ---------------------------------------------------------------------------
 # kernel subgroup
 # ---------------------------------------------------------------------------
 

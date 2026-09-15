@@ -765,6 +765,21 @@ export HEPYY_PACKAGES_DIR=~/.henvs/default
 heyy kernel install
 ```
 
+### Option 4 — merge another heyy instance's registry
+
+If the prefixes are reachable from this instance (same machine, or a shared
+filesystem) but you'd rather not point `HEPYY_PACKAGES_DIR` at someone else's
+tree, import their whole registry in one shot instead of `heyy register`-ing
+packages one at a time:
+
+```bash
+heyy registry --add /path/to/their/hepyy_packages/registry.json
+```
+
+Adds every package not already in this instance's registry; for one that
+already exists here, it asks before overwriting (skipped automatically if
+the existing entry is already identical) unless `--yes` is given.
+
 ---
 
 ## Registering externally-built packages
