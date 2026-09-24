@@ -856,6 +856,29 @@ def recipe_update():
 
 
 # ---------------------------------------------------------------------------
+# migrate-registry
+# ---------------------------------------------------------------------------
+
+@cli.command("migrate-registry")
+def migrate_registry():
+    """Migrate registry.json from schema v1 to v2 (multi-version support).
+
+    Safe to run multiple times — a v2 registry is left unchanged.
+    """
+    from .registry import get_registry
+    reg = get_registry()
+    old_version = reg._data.get("schema_version", 1)
+    reg.save()
+    new_version = reg._data.get("schema_version", 1)
+    click.echo(f"Registry: {reg._path}")
+    if old_version < 2:
+        click.echo(f"Migrated schema v{old_version} → v{new_version}. "
+                   f"{len(reg._data['packages'])} package(s) upgraded.")
+    else:
+        click.echo(f"Already at schema v{new_version} — nothing to do.")
+
+
+# ---------------------------------------------------------------------------
 # registry
 # ---------------------------------------------------------------------------
 
