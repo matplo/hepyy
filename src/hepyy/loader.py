@@ -62,14 +62,14 @@ class Loader:
                 record = self._record_from_prefix(name, shell_version, prefix, reg)
 
         if record is None:
-            record = reg.get(name)
+            record = reg.get(name, version)
 
         # PyPI/pip normalizes hyphens and underscores as equivalent.  Let users
         # pass either form ("hepyy_utils" or "hepyy-utils") and resolve
         # to whichever variant the registry actually has.
         if record is None:
             alt = name.replace("_", "-") if "_" in name else name.replace("-", "_")
-            alt_record = reg.get(alt)
+            alt_record = reg.get(alt, version)
             if alt_record is not None:
                 record = alt_record
                 name = alt  # use the canonical registry name going forward

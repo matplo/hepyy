@@ -257,21 +257,15 @@ def generate_env_scripts(name: str, version: str, prefix: pathlib.Path, python_p
 
 def env_path(name: str, version: Optional[str] = None) -> pathlib.Path:
     reg = get_registry()
-    record = reg.get(name)
+    record = reg.get(name, version)
     if record is None:
         from .exceptions import PackageNotInstalledError
+        if version:
+            raise PackageNotInstalledError(
+                f"Package '{name}/{version}' is not installed. Run: hepyy install {name}/{version}"
+            )
         raise PackageNotInstalledError(
             f"Package '{name}' is not installed. Run: hepyy install {name}"
-        )
-    if version and record.get("version") != version:
-        # Try to find that version directly in build dir
-        candidate = get_build_dir() / name / version
-        if (candidate / "env.sh").exists():
-            return candidate
-        from .exceptions import PackageNotInstalledError
-        raise PackageNotInstalledError(
-            f"Package '{name}' version '{version}' not found. "
-            f"Installed: {record.get('version')}"
         )
     return pathlib.Path(record["prefix"])
 

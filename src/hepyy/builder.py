@@ -324,7 +324,12 @@ class PackageBuilder:
         pkg_vars: dict = {}
         registry = self._registry
         for pkg_name, rec in registry.all_packages().items():
-            pkg_vars[f"{pkg_name}_prefix"] = rec["prefix"]
+            pkg_vars[f"{pkg_name}_prefix"] = rec["prefix"]  # latest version
+        # Also expose version-specific vars like {name}_{ver_underscore}_prefix
+        for pkg_name in list(registry.all_packages()):
+            for ver, vrec in registry.all_versions(pkg_name).items():
+                safe_ver = ver.replace(".", "_").replace("-", "_")
+                pkg_vars[f"{pkg_name}_{safe_ver}_prefix"] = vrec["prefix"]
 
         # Add depends_on packages' bin/ and lib/ dirs to PATH and library path
         # so that tools like lhapdf-config are available during the build.
@@ -472,8 +477,9 @@ def build_package(
     else:
         reg = get_registry()
 
-    if reg.is_installed(recipe.name) and not force and not clean:
-        existing = reg.get(recipe.name)
+    _wanted_ver = version or recipe.version
+    if reg.is_installed(recipe.name, _wanted_ver) and not force and not clean:
+        existing = reg.get(recipe.name, _wanted_ver)
         print(
             f"{recipe.name} {existing['version']} already installed. "
             "Use --force or --clean to rebuild."
@@ -493,7 +499,8 @@ def build_package(
     # silently skipping every package it lists — <folder> must be complete
     # even when the top-level package itself needs nothing but a copy.
     for dep in recipe.depends_on:
-        if not reg.is_installed(dep) or force_all or clean_all:
+        dep_name, _, dep_ver = dep.partition("/")
+        if not reg.is_installed(dep_name, dep_ver or None) or force_all or clean_all:
             print(f"[{name}/{recipe.version}] Installing dependency: {dep}")
             build_package(dep, verbose=verbose, njobs=njobs, redownload=redownload, to_dir=to_dir,
                            force=force_all, clean=clean_all, force_all=force_all, clean_all=clean_all)
@@ -514,7 +521,7 @@ def build_package(
     # already checked above, where a match would have already returned).
     if to_dir is not None and not force and not clean:
         wanted_version = version or recipe.version
-        default_existing = get_registry().get(recipe.name)
+        default_existing = get_registry().get(recipe.name, wanted_version)
         if (
             default_existing is not None
             and default_existing.get("version") == wanted_version
@@ -530,7 +537,7 @@ def build_package(
     # the in-memory 'reg' object loaded above.  Reloading prevents those entries
     # from being silently dropped when we write this package's record.
     reg = Registry(path=to_dir / "registry.json") if to_dir is not None else get_registry()
-    reg.register(recipe.name, record)
+    reg.register(recipe.name, record["version"], record)
     print(f"\n{recipe.name} {record['version']} installed at {record['prefix']}")
     return record
 
@@ -574,6 +581,6 @@ def register_package(
         write_tcl_modulefile(recipe.name, ver, prefix_path,
                              python_paths=recipe.python_paths,
                              depends_on=recipe.depends_on)
-    get_registry().register(recipe.name, record)
+    get_registry().register(recipe.name, ver, record)
     print(f"Registered {recipe.name} {ver} from {prefix_path}")
     return record

@@ -114,45 +114,64 @@ def register(package, prefix, recipe_path, version):
 
 @cli.command()
 @click.argument("package", shell_complete=_complete_installed)
+@click.option("--version", "-v", "pkg_version", default=None,
+              help="Specific version to uninstall (default: latest).")
+@click.option("--all-versions", "all_versions", is_flag=True, default=False,
+              help="Remove all installed versions of the package.")
 @click.option("--keep-files", is_flag=True, default=False,
               help="Remove from registry only; leave the installed files on disk.")
-def uninstall(package, keep_files):
+def uninstall(package, pkg_version, all_versions, keep_files):
     """Remove an installed package from the registry (and optionally its files)."""
     import shutil
     from .registry import get_registry
     from .shell import get_modulefiles_dir
 
     reg = get_registry()
-    record = reg.get(package)
-    if record is None:
+
+    if not reg.is_installed(package):
         click.echo(f"Error: '{package}' is not in the registry.", err=True)
         sys.exit(1)
 
-    version = record.get("version", "unknown")
-    prefix = pathlib.Path(record["prefix"]) if record.get("prefix") else None
+    # Determine which versions to remove
+    if all_versions:
+        versions_to_remove = list(reg.all_versions(package).keys())
+    elif pkg_version:
+        if not reg.is_installed(package, pkg_version):
+            click.echo(f"Error: '{package}/{pkg_version}' is not in the registry.", err=True)
+            sys.exit(1)
+        versions_to_remove = [pkg_version]
+    else:
+        # Default: remove latest
+        record = reg.get(package)
+        versions_to_remove = [record["version"]]
 
-    # Remove TCL modulefile if present
-    mod_file = get_modulefiles_dir() / package / version
-    if mod_file.exists():
-        mod_file.unlink()
-        click.echo(f"Removed modulefile: {mod_file}")
-        # Clean up empty parent dir
-        try:
-            mod_file.parent.rmdir()
-        except OSError:
-            pass
+    for version in versions_to_remove:
+        record = reg.get(package, version)
+        if record is None:
+            continue
+        prefix = pathlib.Path(record["prefix"]) if record.get("prefix") else None
 
-    # Remove installed files
-    if not keep_files and prefix and prefix.exists():
-        click.echo(f"Removing {prefix} ...")
-        shutil.rmtree(prefix)
-        click.echo(f"Removed prefix: {prefix}")
-    elif keep_files:
-        click.echo(f"Keeping files at {prefix} (--keep-files)")
+        # Remove TCL modulefile if present
+        mod_file = get_modulefiles_dir() / package / version
+        if mod_file.exists():
+            mod_file.unlink()
+            click.echo(f"Removed modulefile: {mod_file}")
+            try:
+                mod_file.parent.rmdir()
+            except OSError:
+                pass
 
-    # Deregister
-    reg.remove(package)
-    click.echo(f"Uninstalled {package}/{version}.")
+        # Remove installed files
+        if not keep_files and prefix and prefix.exists():
+            click.echo(f"Removing {prefix} ...")
+            shutil.rmtree(prefix)
+            click.echo(f"Removed prefix: {prefix}")
+        elif keep_files:
+            click.echo(f"Keeping files at {prefix} (--keep-files)")
+
+        # Deregister this version
+        reg.remove(package, version)
+        click.echo(f"Uninstalled {package}/{version}.")
 
 
 # ---------------------------------------------------------------------------
@@ -161,7 +180,7 @@ def uninstall(package, keep_files):
 
 @cli.command(name="list")
 def list_cmd():
-    """Show all installed packages."""
+    """Show all installed packages (all versions)."""
     from .registry import get_registry
     reg = get_registry()
     pkgs = reg.all_packages()
@@ -170,8 +189,9 @@ def list_cmd():
         return
     click.echo(f"{'Package':<20} {'Version':<12} Prefix")
     click.echo("-" * 70)
-    for name, rec in pkgs.items():
-        click.echo(f"{name:<20} {rec.get('version','?'):<12} {rec.get('prefix','?')}")
+    for name in sorted(pkgs):
+        for ver, rec in sorted(reg.all_versions(name).items()):
+            click.echo(f"{name:<20} {ver:<12} {rec.get('prefix','?')}")
 
 
 # ---------------------------------------------------------------------------
@@ -201,20 +221,31 @@ def avail():
 
 @cli.command()
 @click.argument("package", shell_complete=_complete_installed)
-def info(package):
+@click.option("--version", "-v", "pkg_version", default=None,
+              help="Show info for a specific version (default: all installed versions).")
+def info(package, pkg_version):
     """Show details for an installed package."""
     from .registry import get_registry
-    rec = get_registry().get(package)
-    if rec is None:
+    reg = get_registry()
+    if not reg.is_installed(package):
         click.echo(f"Package '{package}' is not installed.", err=True)
         sys.exit(1)
-    for key, val in rec.items():
-        if isinstance(val, list):
-            click.echo(f"{key}:")
-            for item in val:
-                click.echo(f"  - {item}")
-        else:
-            click.echo(f"{key}: {val}")
+    if pkg_version:
+        versions = {pkg_version: reg.get(package, pkg_version)}
+        if versions[pkg_version] is None:
+            click.echo(f"Package '{package}/{pkg_version}' is not installed.", err=True)
+            sys.exit(1)
+    else:
+        versions = reg.all_versions(package)
+    for ver, rec in sorted(versions.items()):
+        click.echo(f"--- {package}/{ver} ---")
+        for key, val in rec.items():
+            if isinstance(val, list):
+                click.echo(f"{key}:")
+                for item in val:
+                    click.echo(f"  - {item}")
+            else:
+                click.echo(f"{key}: {val}")
 
 
 # ---------------------------------------------------------------------------
@@ -677,20 +708,20 @@ def generate_modules():
     from .registry import get_registry
     reg = get_registry()
     count = 0
-    for name, record in reg.all_packages().items():
-        python_paths = record.get("python_paths")
-        if python_paths is None:
-            # Fallback for registry records written before python_paths was stored
-            try:
-                from .recipe import find_recipe
-                r = find_recipe(name, version=record.get("version"))
-                python_paths = r.python_paths
-            except Exception:
-                python_paths = []
-        depends_on = record.get("depends_on") or []
-        mod_file = write_tcl_modulefile(name, record["version"], pathlib.Path(record["prefix"]), python_paths=python_paths, depends_on=depends_on)
-        click.echo(f"  wrote {mod_file}")
-        count += 1
+    for name in sorted(reg.all_packages()):
+        for ver, record in sorted(reg.all_versions(name).items()):
+            python_paths = record.get("python_paths")
+            if python_paths is None:
+                try:
+                    from .recipe import find_recipe
+                    r = find_recipe(name, version=ver)
+                    python_paths = r.python_paths
+                except Exception:
+                    python_paths = []
+            depends_on = record.get("depends_on") or []
+            mod_file = write_tcl_modulefile(name, ver, pathlib.Path(record["prefix"]), python_paths=python_paths, depends_on=depends_on)
+            click.echo(f"  wrote {mod_file}")
+            count += 1
     if count == 0:
         click.echo("No installed packages found.")
     else:
@@ -854,43 +885,54 @@ def registry_cmd(add_path, yes):
         click.echo(f"Error: {add_path} is not valid JSON: {exc}", err=True)
         sys.exit(1)
 
-    incoming = data.get("packages", {})
-    if not incoming:
+    raw_packages = data.get("packages", {})
+    if not raw_packages:
         click.echo(f"No packages found in {add_path}.", err=True)
         return
+
+    # Flatten v1 ({name: record}) and v2 ({name: {version: record}}) to [(name, version, record)]
+    schema_version = data.get("schema_version", 1)
+    flat_records: list = []
+    for name, val in sorted(raw_packages.items()):
+        if schema_version >= 2 and isinstance(val, dict) and not val.get("version"):
+            # v2: nested {version: record}
+            for ver, rec in val.items():
+                flat_records.append((name, ver, rec))
+        else:
+            # v1: plain record
+            flat_records.append((name, val.get("version", "unknown"), val))
 
     reg = get_registry()
     added = overwritten = skipped = 0
 
-    for name, record in sorted(incoming.items()):
-        version = record.get("version")
+    for name, version, record in flat_records:
         prefix = record.get("prefix")
         if not version or not prefix:
             click.echo(f"  skip  {name}  (record missing 'version' or 'prefix')", err=True)
             skipped += 1
             continue
 
-        existing = reg.get(name)
+        existing = reg.get(name, version)
         if existing is not None:
-            if existing.get("version") == version and existing.get("prefix") == prefix:
+            if existing.get("prefix") == prefix:
                 click.echo(f"  skip  {name}/{version}  (already registered, identical)")
                 skipped += 1
                 continue
             prompt = (
-                f"'{name}' is already registered here as {existing.get('version', '?')} "
-                f"({existing.get('prefix', '?')}) — overwrite with {version} ({prefix})?"
+                f"'{name}/{version}' is already registered here "
+                f"({existing.get('prefix', '?')}) — overwrite with {prefix}?"
             )
             if not (yes or click.confirm(prompt, default=False)):
-                click.echo(f"  skip  {name}  (kept existing {existing.get('version', '?')})")
+                click.echo(f"  skip  {name}/{version}  (kept existing)")
                 skipped += 1
                 continue
-            reg.register(name, record)
+            reg.register(name, version, record)
             click.echo(f"  overwritten  {name}/{version}")
             overwritten += 1
         else:
             if not pathlib.Path(prefix).exists():
                 click.echo(f"  warning: prefix for '{name}' does not exist here: {prefix}", err=True)
-            reg.register(name, record)
+            reg.register(name, version, record)
             click.echo(f"  added  {name}/{version}")
             added += 1
 
