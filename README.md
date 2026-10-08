@@ -157,6 +157,24 @@ import cppyy, pythia8, fastjet, fjcontrib
 
 ---
 
+## Podman / containers
+
+For a rootless, GPU-aware container setup (Python 3.11 + C++ + Fortran toolchain,
+with `hepyy`-installed packages persisted on the host so adding a package never
+needs an image rebuild), see [`contrib/podman/`](contrib/podman/):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.21/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
+chmod +x hepyy-pod.sh
+./hepyy-pod.sh build
+./hepyy-pod.sh run
+```
+
+See [`contrib/podman/README.md`](contrib/podman/README.md) for details, including
+automatic CUDA detection and GPU passthrough.
+
+---
+
 ## Initialise
 
 Run once after installation to create the package store, fetch recipes, and check cppyy:
