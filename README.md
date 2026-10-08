@@ -164,7 +164,7 @@ with `hepyy`-installed packages persisted on the host so adding a package never
 needs an image rebuild), see [`contrib/podman/`](contrib/podman/):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.21/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
+curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.22/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
 chmod +x hepyy-pod.sh
 ./hepyy-pod.sh build
 ./hepyy-pod.sh run

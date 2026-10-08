@@ -5,23 +5,45 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_IMAGE_NAME=dev-env
 CONTAINER_PACKAGES_DIR=/opt/hep/packages
 CONTAINER_WORKSPACE_DIR=/workspace
-GENERATED_DOCKERFILE="$SCRIPT_DIR/Dockerfile.cuda.generated"
+
+# Where this script stores state it manages itself: a downloaded Dockerfile
+# (when run standalone, e.g. from ~/bin or ~/.local/bin), the generated CUDA
+# Dockerfile, and default hepyy-packages directories. Deliberately NOT
+# $SCRIPT_DIR and NOT $PWD -- the script may live in a bin dir that shouldn't
+# get build artifacts dumped into it, and $PWD varies per invocation.
+# Override with --home <dir> or $HEPYY_POD_HOME.
+HEPYY_POD_HOME="${HEPYY_POD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/hepyy-pod}"
 
 # Pinned to a tag, not a branch, so `curl`-ing this script alone always
 # fetches the matching Dockerfile -- update HEPYY_POD_REF on release.
 HEPYY_POD_REPO_RAW_BASE="https://raw.githubusercontent.com/matplo/hepyy"
-HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.21}"
+HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.22}"
 HEPYY_POD_DOCKERFILE_PATH="contrib/podman/Dockerfile"
 
-# Ensures $SCRIPT_DIR/Dockerfile exists, fetching the pinned-ref copy from
-# GitHub if this script was downloaded standalone (e.g. via the one-liner).
-ensure_dockerfile() {
+# Echoes the directory holding the Dockerfile to build from: next to this
+# script if it was cloned alongside one (repo checkout), else HEPYY_POD_HOME
+# (where ensure_dockerfile fetches one for a standalone-downloaded script).
+dockerfile_dir() {
     if [[ -f "$SCRIPT_DIR/Dockerfile" ]]; then
+        echo "$SCRIPT_DIR"
+    else
+        echo "$HEPYY_POD_HOME"
+    fi
+}
+
+# Ensures a Dockerfile exists in dockerfile_dir(), fetching the pinned-ref
+# copy from GitHub into HEPYY_POD_HOME if this script was downloaded
+# standalone (e.g. via the one-liner) with no Dockerfile alongside it.
+ensure_dockerfile() {
+    local dir
+    dir="$(dockerfile_dir)"
+    if [[ -f "$dir/Dockerfile" ]]; then
         return 0
     fi
+    mkdir -p "$dir"
     local url="$HEPYY_POD_REPO_RAW_BASE/$HEPYY_POD_REF/$HEPYY_POD_DOCKERFILE_PATH"
-    echo "INFO: Dockerfile not found next to this script; fetching $url" >&2
-    if ! curl -fsSL "$url" -o "$SCRIPT_DIR/Dockerfile"; then
+    echo "INFO: no Dockerfile found; fetching $url -> $dir/Dockerfile" >&2
+    if ! curl -fsSL "$url" -o "$dir/Dockerfile"; then
         echo "ERROR: failed to fetch Dockerfile from $url" >&2
         echo "       Place a Dockerfile next to this script, or set HEPYY_POD_REF" >&2
         echo "       to a valid tag/branch of matplo/hepyy." >&2
@@ -39,8 +61,9 @@ accordingly. CUDA builds are tagged and stored separately per CUDA version so
 mismatched builds never collide.
 
 Subcommands:
-  build                           Build the image (CUDA variant if detected)
-  run [--workspace <dir>] [--hepyy-packages <dir>] [-- <cmd> [args...]]
+  build [--home <dir>]
+                                   Build the image (CUDA variant if detected)
+  run [--workspace <dir>] [--hepyy-packages <dir>] [--home <dir>] [-- <cmd> [args...]]
                                    Run a container from the matching image
 
 Options for 'run':
@@ -48,10 +71,22 @@ Options for 'run':
                             (external code / results live here). Defaults to \$PWD.
   --hepyy-packages <dir>   Host directory mounted to $CONTAINER_PACKAGES_DIR
                             (hepyy-installed packages persist here). Defaults to
-                            ./hepyy-packages-<image-tag> next to this script.
+                            <home>/hepyy-packages-<image-tag> (see --home below).
 
   Anything after '--' (or any trailing positional args) is passed through as the
   command to run inside the container. Defaults to an interactive bash shell.
+
+Options for 'build' and 'run':
+  --home <dir>             Where this script keeps state it manages itself: a
+                            downloaded Dockerfile (only needed if this script
+                            was fetched standalone, e.g. into ~/bin or
+                            ~/.local/bin, rather than cloned alongside its
+                            Dockerfile), the generated CUDA Dockerfile, and
+                            default hepyy-packages directories. Defaults to
+                            \$HEPYY_POD_HOME, or \$XDG_DATA_HOME/hepyy-pod, or
+                            ~/.local/share/hepyy-pod.
+                            Deliberately not \$PWD or this script's own
+                            directory (which may be a shared bin dir).
 
 CUDA detection can be overridden:
   NO_CUDA=1                        force plain (no-GPU) build/run
@@ -64,6 +99,7 @@ Examples:
   $(basename "$0") run --workspace /data/myproj --hepyy-packages /data/podman-dev/hepyy-packages-$BASE_IMAGE_NAME
   $(basename "$0") run -- hepyy install sherpa/2.2.15
   NO_CUDA=1 $(basename "$0") build
+  $(basename "$0") build --home ~/.local/hepyy-pod   # e.g. when installed into ~/bin
 
 If a CUDA driver is detected but GPU passthrough isn't actually working inside
 the container (e.g. nvidia-smi missing in-container), the NVIDIA Container
@@ -137,28 +173,52 @@ image_tag_for() {
 
 generate_cuda_dockerfile() {
     local base_image="$1"
+    local dir generated
+    dir="$(dockerfile_dir)"
+    generated="$dir/Dockerfile.cuda.generated"
     {
         echo "FROM $base_image"
-        tail -n +2 "$SCRIPT_DIR/Dockerfile"
-    } > "$GENERATED_DOCKERFILE"
+        tail -n +2 "$dir/Dockerfile"
+    } > "$generated"
+    echo "$generated"
 }
 
 cmd_build() {
-    local cuda_ver image_tag
+    local cuda_ver image_tag dir
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --home)
+                HEPYY_POD_HOME="$2"
+                shift 2
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                echo "Unknown option for 'build': $1" >&2
+                usage
+                exit 1
+                ;;
+        esac
+    done
+
     ensure_dockerfile
+    dir="$(dockerfile_dir)"
     cuda_ver="$(detect_cuda_version)"
     image_tag="$(image_tag_for "$cuda_ver")"
 
     if [[ -z "$cuda_ver" ]]; then
         echo "INFO: no CUDA detected, building plain image -> tag $image_tag" >&2
-        exec podman build -t "$image_tag" -f "$SCRIPT_DIR/Dockerfile" "$SCRIPT_DIR"
+        exec podman build -t "$image_tag" -f "$dir/Dockerfile" "$dir"
     fi
 
-    local base_image
+    local base_image generated
     base_image="$(resolve_base_image "$cuda_ver")" || exit 1
     echo "INFO: detected CUDA $cuda_ver -> base image $base_image -> tag $image_tag" >&2
-    generate_cuda_dockerfile "$base_image"
-    exec podman build -t "$image_tag" -f "$GENERATED_DOCKERFILE" "$SCRIPT_DIR"
+    generated="$(generate_cuda_dockerfile "$base_image")"
+    exec podman build -t "$image_tag" -f "$generated" "$dir"
 }
 
 # If the host packages dir is empty, seed it from whatever hepyy packages
@@ -223,6 +283,10 @@ cmd_run() {
                 packages_dir="$2"
                 shift 2
                 ;;
+            --home)
+                HEPYY_POD_HOME="$2"
+                shift 2
+                ;;
             --)
                 shift
                 passthrough=("$@")
@@ -245,7 +309,7 @@ cmd_run() {
     fi
 
     if [[ -z "$packages_dir" ]]; then
-        packages_dir="$SCRIPT_DIR/hepyy-packages-$image_tag"
+        packages_dir="$HEPYY_POD_HOME/hepyy-packages-$image_tag"
         echo "WARNING: --hepyy-packages not given, defaulting to $packages_dir" >&2
     fi
 
