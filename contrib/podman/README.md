@@ -9,7 +9,7 @@ Download the script, inspect it, then run it (recommended over piping
 `curl | bash` blindly):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.22/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
+curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.23/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
 chmod +x hepyy-pod.sh
 less hepyy-pod.sh   # read it before running, especially the first time
 ./hepyy-pod.sh build
@@ -22,7 +22,7 @@ automatically fetches the matching `Dockerfile` from the same pinned repo tag.
 If you'd rather clone the whole thing:
 
 ```bash
-git clone --branch v0.2.22 https://github.com/matplo/hepyy
+git clone --branch v0.2.23 https://github.com/matplo/hepyy
 cd hepyy/contrib/podman
 ./hepyy-pod.sh build
 ./hepyy-pod.sh run
@@ -41,11 +41,74 @@ cd hepyy/contrib/podman
   - `--hepyy-packages` mounts a host directory to `/opt/hep/packages`, so
     `hepyy install <pkg>/<version>` run inside a container persists on the
     host and never needs an image rebuild to add/update a package. Defaults
-    to `./hepyy-packages-<image-tag>` next to the script if omitted.
+    to `<storage-root>/hepyy-packages-<image-tag>` if omitted (see
+    `--storage-root` below).
   - GPU passthrough is handled automatically: CDI (`--device
     nvidia.com/gpu=all`) on podman >= 4.1, or the legacy
     `nvidia-container-runtime` wrapper on older podman (e.g. the podman 3.4.x
     that ships with Ubuntu 22.04).
+
+## Keeping podman images and built packages off `$HOME`
+
+Podman's own image/container storage defaults to `~/.local/share/containers`
+for rootless podman, and (as above) the default `hepyy-packages` dir also
+used to live under `~/.local`. On systems with a small `$HOME` quota (e.g.
+NERSC/Perlmutter), a handful of multi-GB images and compiled HEP packages
+will blow through it fast.
+
+`--storage-root <dir>` (on both `build` and `run`) redirects *both* of
+those to a location of your choosing. Resolution order:
+
+1. `--storage-root <dir>` flag
+2. a loaded profile's stored value (see below)
+3. `$HEPYY_POD_STORAGE_ROOT` env var
+4. `$SCRATCH/hepyy-pod-storage`, automatically, if `$SCRATCH` is set (true on
+   Perlmutter and most HPC sites)
+5. fallback: `~/.local/share/hepyy-pod-storage` -- a WARNING is printed when
+   this fallback is used, since it does count against `$HOME` quota.
+
+```bash
+# on Perlmutter, $SCRATCH is already set, so this just works with no flags:
+./hepyy-pod.sh build
+./hepyy-pod.sh run
+
+# or be explicit anywhere:
+./hepyy-pod.sh build --storage-root /scratch/hepyy-pod-storage
+```
+
+Note: switching storage roots points podman at a brand-new, empty image
+store -- images built under one root aren't visible under another, so the
+first build after switching starts from scratch.
+
+## Named profiles
+
+Register a `(storage-root, hepyy-packages)` pair under a short name, then
+invoke it by putting the name before the subcommand:
+
+```bash
+./hepyy-pod.sh profile add blue --storage-root /scratch/hepyy-blue --hepyy-packages /scratch/pkgs-blue
+./hepyy-pod.sh profile add red  --storage-root /scratch/hepyy-red  --hepyy-packages /scratch/pkgs-red
+
+./hepyy-pod.sh blue build
+./hepyy-pod.sh blue run -- hepyy install sherpa/2.2.15
+
+./hepyy-pod.sh red build
+./hepyy-pod.sh red run -- hepyy install jewel/2.6.0-custom
+```
+
+Each profile is a fully independent podman image store and package set --
+`blue` and `red` above never see each other's images or packages, so this is
+a clean way to keep e.g. different CUDA builds or different package sets
+side by side without them interfering.
+
+An explicit `--storage-root`/`--hepyy-packages` flag on the command line
+still overrides a profile's stored value for that one invocation:
+
+```bash
+./hepyy-pod.sh blue run --hepyy-packages /scratch/pkgs-experimental -- ...
+```
+
+`profile list` shows what's registered, `profile rm <name>` removes one.
 
 Run `./hepyy-pod.sh --help` for the full option/override list (including
 `NO_CUDA=1`, `CUDA_VERSION=`, `CUDA_BASE_IMAGE=` env overrides, and the
