@@ -17,7 +17,7 @@ HEPYY_POD_HOME="${HEPYY_POD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/hepyy-pod
 # Pinned to a tag, not a branch, so `curl`-ing this script alone always
 # fetches the matching Dockerfile -- update HEPYY_POD_REF on release.
 HEPYY_POD_REPO_RAW_BASE="https://raw.githubusercontent.com/matplo/hepyy"
-HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.24}"
+HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.25}"
 HEPYY_POD_DOCKERFILE_PATH="contrib/podman/Dockerfile"
 
 # PROFILE_STORAGE_ROOT / PROFILE_HEPYY_PACKAGES are set by a profile (see
@@ -156,7 +156,7 @@ Subcommands:
                                    pair, usable as: $(basename "$0") <name> build|run ...
   profile list                    List registered profiles
   profile rm <name>                Remove a registered profile
-  kernel install [--name <name>] [--display-name <name>]
+  kernel install [--name <name>] [--display-name <name>] [--net <mode>]
       [--workspace <dir>] [--hepyy-packages <dir>] [--storage-root <dir>] [--home <dir>]
                                    Generate a Jupyter kernelspec (kernel.json +
                                    kernel-helper.sh) that launches ipykernel
@@ -164,6 +164,15 @@ Subcommands:
                                    A TEMPLATE: bakes in whatever mounts/image
                                    are resolved on THIS host (or profile) at
                                    install time -- not Perlmutter-specific.
+                                   --net defaults to "host" (required for the
+                                   Jupyter server on the host to reach the
+                                   kernel's ZMQ ports through podman's network
+                                   namespace); pass --net "" to disable if it
+                                   conflicts with a GPU-specific network mode.
+                                   Each kernel start launches a fresh
+                                   container (a few seconds of latency); a
+                                   kernel restart picks up a newer image tag
+                                   if one was rebuilt meanwhile.
   kernel list                     List installed Jupyter kernels
   kernel remove <name>            Remove a kernel installed by this script
 
@@ -583,6 +592,14 @@ cmd_kernel_install() {
     local name="$image_tag"
     local display_name="HEP (podman $image_tag)"
     local workspace_dir="" packages_dir="$PROFILE_HEPYY_PACKAGES" storage_root_flag=""
+    # Rootless podman's default network namespace isolates the container's
+    # loopback from the host's, so ipykernel's ZMQ sockets (bound to
+    # 127.0.0.1 per the connection file written by the Jupyter server on the
+    # HOST) are unreachable and the kernel hangs on "connecting". --net=host
+    # fixes this by sharing the host's network namespace. Override with
+    # --net <mode> (e.g. "" to disable) if this conflicts with a GPU-specific
+    # network mode on your setup.
+    local net_mode="host"
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -592,6 +609,7 @@ cmd_kernel_install() {
             --hepyy-packages) packages_dir="$2"; shift 2 ;;
             --storage-root) storage_root_flag="$2"; shift 2 ;;
             --home) HEPYY_POD_HOME="$2"; shift 2 ;;
+            --net) net_mode="$2"; shift 2 ;;
             -h|--help) cmd_kernel; exit 0 ;;
             *) echo "Unknown option for 'kernel install': $1" >&2; exit 1 ;;
         esac
@@ -640,9 +658,13 @@ exec "$@"
 HELPER
     chmod +x "$helper"
 
+    local -a net_flags=()
+    [[ -n "$net_mode" ]] && net_flags=(--net "$net_mode")
+
     local -a argv=(
         "$bin" run --rm -i --userns=keep-id
         "${storage_args[@]}"
+        "${net_flags[@]}"
         "${extra_flags[@]}"
         "${gpu_flags[@]}"
         -e HEPYY_PACKAGES_DIR="$CONTAINER_PACKAGES_DIR"
