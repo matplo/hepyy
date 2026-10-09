@@ -9,7 +9,7 @@ Download the script, inspect it, then run it (recommended over piping
 `curl | bash` blindly):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.23/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
+curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.24/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
 chmod +x hepyy-pod.sh
 less hepyy-pod.sh   # read it before running, especially the first time
 ./hepyy-pod.sh build
@@ -22,7 +22,7 @@ automatically fetches the matching `Dockerfile` from the same pinned repo tag.
 If you'd rather clone the whole thing:
 
 ```bash
-git clone --branch v0.2.23 https://github.com/matplo/hepyy
+git clone --branch v0.2.24 https://github.com/matplo/hepyy
 cd hepyy/contrib/podman
 ./hepyy-pod.sh build
 ./hepyy-pod.sh run
@@ -109,6 +109,39 @@ still overrides a profile's stored value for that one invocation:
 ```
 
 `profile list` shows what's registered, `profile rm <name>` removes one.
+
+## Jupyter kernel
+
+`kernel install` generates a Jupyter kernelspec (`kernel.json` +
+`kernel-helper.sh`) that launches `ipykernel` inside this image via
+`podman`/`podman-hpc run`, reusing the same storage-root/profile/workspace/
+hepyy-packages resolution as `run`:
+
+```bash
+./hepyy-pod.sh kernel install --name hep --display-name "HEP (podman)"
+# or, using a profile's mounts/storage-root:
+./hepyy-pod.sh main kernel install --name hep
+```
+
+This is a **template**, not Perlmutter-specific: it bakes in whatever
+mounts/image are resolved on *this* host (or profile) at install time, and
+prefers `podman-hpc` automatically if present (adding its `--jupyter` flag),
+falling back to plain `podman` otherwise. The generated `kernel.json` lands
+under `jupyter --data-dir`'s `kernels/<name>/` (or
+`~/.local/share/jupyter/kernels/<name>/` if `jupyter` isn't on `PATH`).
+
+`kernel-helper.sh`, alongside it, is a customization hook run *inside* the
+container right before the kernel launches -- edit it to pin a package
+version (e.g. `ipympl` to match your JupyterLab frontend's version) or source
+an environment/module setup script:
+
+```sh
+#!/bin/sh
+pip install --quiet 'ipympl==<version-matching-your-jupyterlab>'
+exec "$@"
+```
+
+`kernel list` / `kernel remove <name>` list and remove installed kernels.
 
 Run `./hepyy-pod.sh --help` for the full option/override list (including
 `NO_CUDA=1`, `CUDA_VERSION=`, `CUDA_BASE_IMAGE=` env overrides, and the
