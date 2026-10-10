@@ -17,8 +17,9 @@ HEPYY_POD_HOME="${HEPYY_POD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/hepyy-pod
 # Pinned to a tag, not a branch, so `curl`-ing this script alone always
 # fetches the matching Dockerfile -- update HEPYY_POD_REF on release.
 HEPYY_POD_REPO_RAW_BASE="https://raw.githubusercontent.com/matplo/hepyy"
-HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.25}"
+HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.26}"
 HEPYY_POD_DOCKERFILE_PATH="contrib/podman/Dockerfile"
+HEPYY_POD_SCRIPT_PATH="contrib/podman/hepyy-pod.sh"
 
 # PROFILE_STORAGE_ROOT / PROFILE_HEPYY_PACKAGES are set by a profile (see
 # cmd_profile / the profile dispatch below) and act as a layer of defaults
@@ -139,6 +140,7 @@ ensure_dockerfile() {
 usage() {
     cat <<EOF
 Usage: $(basename "$0") <subcommand> [options]
+       $(basename "$0") --update [ref]
 
 Autodetects whether this node has a usable NVIDIA/CUDA setup (via nvidia-smi)
 and builds/runs a plain or CUDA-enabled variant of the $BASE_IMAGE_NAME image
@@ -175,6 +177,14 @@ Subcommands:
                                    if one was rebuilt meanwhile.
   kernel list                     List installed Jupyter kernels
   kernel remove <name>            Remove a kernel installed by this script
+
+--update [ref]             Self-update THIS script file in place from GitHub.
+                            Defaults to the "main" branch (latest, possibly
+                            unreleased); pass a tag to pin, e.g. --update
+                            v0.2.26. Verifies the download looks like this
+                            script and passes a syntax check before
+                            replacing it, and keeps the previous copy as
+                            <script>.bak.
 
 Options for 'run':
   --workspace <dir>        Host directory mounted to $CONTAINER_WORKSPACE_DIR
@@ -232,6 +242,8 @@ Examples:
   $(basename "$0") blue run -- hepyy install jewel/2.6.0-custom
   $(basename "$0") kernel install --name hep --display-name "HEP (podman)"
   $(basename "$0") main kernel install --name hep   # using a profile's mounts/storage
+  $(basename "$0") --update            # self-update to latest "main"
+  $(basename "$0") --update v0.2.26    # self-update to a specific tag
 
 If a CUDA driver is detected but GPU passthrough isn't actually working inside
 the container (e.g. nvidia-smi missing in-container), the NVIDIA Container
@@ -785,6 +797,50 @@ load_profile() {
     PROFILE_STORAGE_ROOT="$STORAGE_ROOT"
     PROFILE_HEPYY_PACKAGES="$HEPYY_PACKAGES"
 }
+
+# Self-updates THIS script file in place from GitHub. Defaults to the "main"
+# branch (the latest, possibly-unreleased version) rather than the pinned
+# HEPYY_POD_REF tag this running copy was built against -- that's the point
+# of --update: pick up newer fixes/features. Pass a tag/branch explicitly to
+# pin, e.g. --update v0.2.26.
+cmd_update() {
+    local ref="${1:-main}"
+    local self
+    self="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+
+    local url="$HEPYY_POD_REPO_RAW_BASE/$ref/$HEPYY_POD_SCRIPT_PATH"
+    local tmp
+    tmp="$(mktemp)"
+    echo "INFO: fetching $url" >&2
+    if ! curl -fsSL "$url" -o "$tmp"; then
+        rm -f "$tmp"
+        echo "ERROR: failed to fetch $url" >&2
+        echo "       Check the ref/network, or pass --update <tag> for a known-good tag." >&2
+        exit 1
+    fi
+    if ! head -1 "$tmp" | grep -q '^#!/usr/bin/env bash'; then
+        rm -f "$tmp"
+        echo "ERROR: downloaded file doesn't look like this script -- aborting update." >&2
+        exit 1
+    fi
+    if ! bash -n "$tmp" 2>/dev/null; then
+        rm -f "$tmp"
+        echo "ERROR: downloaded script failed a syntax check -- aborting update." >&2
+        exit 1
+    fi
+
+    local backup="$self.bak"
+    cp -p "$self" "$backup"
+    chmod 755 "$tmp"
+    mv "$tmp" "$self"
+    echo "INFO: updated $self from ref '$ref' (previous copy saved to $backup)" >&2
+}
+
+if [[ "${1:-}" == "--update" ]]; then
+    shift
+    cmd_update "$@"
+    exit 0
+fi
 
 if [[ $# -eq 0 ]]; then
     usage

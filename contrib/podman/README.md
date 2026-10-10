@@ -9,7 +9,7 @@ Download the script, inspect it, then run it (recommended over piping
 `curl | bash` blindly):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.25/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
+curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.26/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
 chmod +x hepyy-pod.sh
 less hepyy-pod.sh   # read it before running, especially the first time
 ./hepyy-pod.sh build
@@ -22,11 +22,29 @@ automatically fetches the matching `Dockerfile` from the same pinned repo tag.
 If you'd rather clone the whole thing:
 
 ```bash
-git clone --branch v0.2.25 https://github.com/matplo/hepyy
+git clone --branch v0.2.26 https://github.com/matplo/hepyy
 cd hepyy/contrib/podman
 ./hepyy-pod.sh build
 ./hepyy-pod.sh run
 ```
+
+### Install into `~/.local/bin`
+
+To have `hepyy-pod` available as a regular command (inspect it first, same
+as above):
+
+```bash
+mkdir -p ~/.local/bin
+curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.26/contrib/podman/hepyy-pod.sh -o ~/.local/bin/hepyy-pod
+chmod +x ~/.local/bin/hepyy-pod
+hepyy-pod build   # make sure ~/.local/bin is on $PATH first
+```
+
+Since this puts the script somewhere with no `Dockerfile` alongside it,
+`build` automatically fetches one into `$HEPYY_POD_HOME` (default
+`~/.local/share/hepyy-pod`) the first time it's needed -- see
+[Keeping podman images and built packages off `$HOME`](#keeping-podman-images-and-built-packages-off-home)
+below for why that's a small text file, not the actual image storage.
 
 ## What `build`/`run` do
 
@@ -177,6 +195,18 @@ Everything here runs rootless (`podman` with `--userns=keep-id`). The only
 exception is a one-time host setup if you want GPU passthrough and don't
 already have `nvidia-container-toolkit` installed -- `--help` prints the
 exact 3 commands needed, which do require `sudo`.
+
+## Self-updating
+
+```bash
+hepyy-pod --update            # overwrite this script with the latest "main"
+hepyy-pod --update v0.2.26    # pin to a specific tag instead
+```
+
+Fetches `contrib/podman/hepyy-pod.sh` from the given ref, checks it looks
+like a shell script and passes a syntax check, then replaces the running
+script file in place -- keeping the previous copy as `<script>.bak` next to
+it. Does not touch the `Dockerfile` or any built images/packages.
 
 ## Versioning
 
