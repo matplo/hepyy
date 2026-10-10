@@ -17,7 +17,7 @@ HEPYY_POD_HOME="${HEPYY_POD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/hepyy-pod
 # Pinned to a tag, not a branch, so `curl`-ing this script alone always
 # fetches the matching Dockerfile -- update HEPYY_POD_REF on release.
 HEPYY_POD_REPO_RAW_BASE="https://raw.githubusercontent.com/matplo/hepyy"
-HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.27}"
+HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.28}"
 HEPYY_POD_DOCKERFILE_PATH="contrib/podman/Dockerfile"
 HEPYY_POD_SCRIPT_PATH="contrib/podman/hepyy-pod.sh"
 
@@ -181,7 +181,7 @@ Subcommands:
 --update [ref]             Self-update THIS script file in place from GitHub.
                             Defaults to the "main" branch (latest, possibly
                             unreleased); pass a tag to pin, e.g. --update
-                            v0.2.27. Verifies the download looks like this
+                            v0.2.28. Verifies the download looks like this
                             script and passes a syntax check before
                             replacing it, and keeps the previous copy as
                             <script>.bak.
@@ -243,11 +243,17 @@ Examples:
   $(basename "$0") kernel install --name hep --display-name "HEP (podman)"
   $(basename "$0") main kernel install --name hep   # using a profile's mounts/storage
   $(basename "$0") --update            # self-update to latest "main"
-  $(basename "$0") --update v0.2.27    # self-update to a specific tag
+  $(basename "$0") --update v0.2.28    # self-update to a specific tag
 
 If a CUDA driver is detected but GPU passthrough isn't actually working inside
 the container (e.g. nvidia-smi missing in-container), the NVIDIA Container
-Toolkit is likely not set up on this host. Fix with (needs sudo):
+Toolkit is likely not set up on this host. Fix with (needs sudo). If your
+distro's repos don't have the package, add NVIDIA's own repo first:
+  curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+  curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \\
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \\
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+Then, either way:
   sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
   sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
   nvidia-ctk cdi list
@@ -421,7 +427,14 @@ WARNING: CUDA detected on this host, but no NVIDIA Container Toolkit (nvidia-ctk
          NOT work (nvidia-smi etc. won't be visible inside the container), even
          though --gpus all is being passed.
 
-         To fix, run on the HOST (needs sudo):
+         To fix, run on the HOST (needs sudo). If your distro's default repos
+         don't have the package (plain `apt-get install` errors with
+         "Unable to locate package"), add NVIDIA's own repo first:
+           curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+           curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+             sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+             sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+         Then, either way:
            sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
            sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
            nvidia-ctk cdi list
@@ -812,7 +825,7 @@ load_profile() {
 # branch (the latest, possibly-unreleased version) rather than the pinned
 # HEPYY_POD_REF tag this running copy was built against -- that's the point
 # of --update: pick up newer fixes/features. Pass a tag/branch explicitly to
-# pin, e.g. --update v0.2.27.
+# pin, e.g. --update v0.2.28.
 cmd_update() {
     local ref="${1:-main}"
     local self
