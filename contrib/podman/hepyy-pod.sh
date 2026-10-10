@@ -17,7 +17,7 @@ HEPYY_POD_HOME="${HEPYY_POD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/hepyy-pod
 # Pinned to a tag, not a branch, so `curl`-ing this script alone always
 # fetches the matching Dockerfile -- update HEPYY_POD_REF on release.
 HEPYY_POD_REPO_RAW_BASE="https://raw.githubusercontent.com/matplo/hepyy"
-HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.26}"
+HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.27}"
 HEPYY_POD_DOCKERFILE_PATH="contrib/podman/Dockerfile"
 HEPYY_POD_SCRIPT_PATH="contrib/podman/hepyy-pod.sh"
 
@@ -181,7 +181,7 @@ Subcommands:
 --update [ref]             Self-update THIS script file in place from GitHub.
                             Defaults to the "main" branch (latest, possibly
                             unreleased); pass a tag to pin, e.g. --update
-                            v0.2.26. Verifies the download looks like this
+                            v0.2.27. Verifies the download looks like this
                             script and passes a syntax check before
                             replacing it, and keeps the previous copy as
                             <script>.bak.
@@ -243,7 +243,7 @@ Examples:
   $(basename "$0") kernel install --name hep --display-name "HEP (podman)"
   $(basename "$0") main kernel install --name hep   # using a profile's mounts/storage
   $(basename "$0") --update            # self-update to latest "main"
-  $(basename "$0") --update v0.2.26    # self-update to a specific tag
+  $(basename "$0") --update v0.2.27    # self-update to a specific tag
 
 If a CUDA driver is detected but GPU passthrough isn't actually working inside
 the container (e.g. nvidia-smi missing in-container), the NVIDIA Container
@@ -283,6 +283,9 @@ resolve_base_image() {
     local minor="${cuda_ver#*.}"
     local tag
     case "$major" in
+        13)
+            tag="13.0.3"
+            ;;
         12)
             if   (( minor >= 6 )); then tag="12.6.3"
             elif (( minor >= 4 )); then tag="12.4.1"
@@ -297,9 +300,16 @@ resolve_base_image() {
             fi
             ;;
         *)
-            echo "ERROR: no known base image mapping for CUDA $cuda_ver." >&2
-            echo "       Override with CUDA_BASE_IMAGE=<image:tag>." >&2
-            return 1
+            # Unmapped major version (e.g. a newer driver than this table has
+            # seen) -- guess rather than hard-fail, so a future CUDA 14/15
+            # doesn't need another emergency patch here. The guess may not
+            # exist on the registry; podman build will then fail clearly at
+            # the pull step instead of this function blocking before trying.
+            tag="${major}.0.0"
+            echo "WARNING: no known base image mapping for CUDA $cuda_ver." >&2
+            echo "         Guessing docker.io/nvidia/cuda:${tag}-devel-ubuntu22.04 --" >&2
+            echo "         this is unverified. Override with CUDA_BASE_IMAGE=<image:tag>" >&2
+            echo "         if this guess is wrong or doesn't exist." >&2
             ;;
     esac
     echo "docker.io/nvidia/cuda:${tag}-devel-ubuntu22.04"
@@ -802,7 +812,7 @@ load_profile() {
 # branch (the latest, possibly-unreleased version) rather than the pinned
 # HEPYY_POD_REF tag this running copy was built against -- that's the point
 # of --update: pick up newer fixes/features. Pass a tag/branch explicitly to
-# pin, e.g. --update v0.2.26.
+# pin, e.g. --update v0.2.27.
 cmd_update() {
     local ref="${1:-main}"
     local self

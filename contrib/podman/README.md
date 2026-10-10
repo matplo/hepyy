@@ -9,7 +9,7 @@ Download the script, inspect it, then run it (recommended over piping
 `curl | bash` blindly):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.26/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
+curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.27/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
 chmod +x hepyy-pod.sh
 less hepyy-pod.sh   # read it before running, especially the first time
 ./hepyy-pod.sh build
@@ -22,7 +22,7 @@ automatically fetches the matching `Dockerfile` from the same pinned repo tag.
 If you'd rather clone the whole thing:
 
 ```bash
-git clone --branch v0.2.26 https://github.com/matplo/hepyy
+git clone --branch v0.2.27 https://github.com/matplo/hepyy
 cd hepyy/contrib/podman
 ./hepyy-pod.sh build
 ./hepyy-pod.sh run
@@ -35,7 +35,7 @@ as above):
 
 ```bash
 mkdir -p ~/.local/bin
-curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.26/contrib/podman/hepyy-pod.sh -o ~/.local/bin/hepyy-pod
+curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.27/contrib/podman/hepyy-pod.sh -o ~/.local/bin/hepyy-pod
 chmod +x ~/.local/bin/hepyy-pod
 hepyy-pod build   # make sure ~/.local/bin is on $PATH first
 ```
@@ -189,6 +189,11 @@ Run `./hepyy-pod.sh --help` for the full option/override list (including
 `nvidia-container-toolkit` setup commands if GPU detection finds a driver but
 no working passthrough mechanism).
 
+If `nvidia-smi` reports a CUDA version newer than this script's known base
+image table (e.g. a fresh driver bump), it guesses a tag instead of failing
+outright and prints a WARNING -- override with `CUDA_BASE_IMAGE=<image:tag>`
+if that guess doesn't exist on the registry.
+
 ## No sudo required
 
 Everything here runs rootless (`podman` with `--userns=keep-id`). The only
@@ -200,7 +205,7 @@ exact 3 commands needed, which do require `sudo`.
 
 ```bash
 hepyy-pod --update            # overwrite this script with the latest "main"
-hepyy-pod --update v0.2.26    # pin to a specific tag instead
+hepyy-pod --update v0.2.27    # pin to a specific tag instead
 ```
 
 Fetches `contrib/podman/hepyy-pod.sh` from the given ref, checks it looks
