@@ -9,7 +9,7 @@ Download the script, inspect it, then run it (recommended over piping
 `curl | bash` blindly):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.28/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
+curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.29/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
 chmod +x hepyy-pod.sh
 less hepyy-pod.sh   # read it before running, especially the first time
 ./hepyy-pod.sh build
@@ -22,7 +22,7 @@ automatically fetches the matching `Dockerfile` from the same pinned repo tag.
 If you'd rather clone the whole thing:
 
 ```bash
-git clone --branch v0.2.28 https://github.com/matplo/hepyy
+git clone --branch v0.2.29 https://github.com/matplo/hepyy
 cd hepyy/contrib/podman
 ./hepyy-pod.sh build
 ./hepyy-pod.sh run
@@ -35,7 +35,7 @@ as above):
 
 ```bash
 mkdir -p ~/.local/bin
-curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.28/contrib/podman/hepyy-pod.sh -o ~/.local/bin/hepyy-pod
+curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.29/contrib/podman/hepyy-pod.sh -o ~/.local/bin/hepyy-pod
 chmod +x ~/.local/bin/hepyy-pod
 hepyy-pod build   # make sure ~/.local/bin is on $PATH first
 ```
@@ -198,15 +198,22 @@ if that guess doesn't exist on the registry.
 
 Everything here runs rootless (`podman` with `--userns=keep-id`). The only
 exception is a one-time host setup if you want GPU passthrough and don't
-already have `nvidia-container-toolkit` installed -- `--help` prints the
-commands needed (adding NVIDIA's own apt repo first if your distro's repos
-don't carry the package), which do require `sudo`.
+already have `nvidia-container-toolkit` installed. On a Debian/Ubuntu host:
+
+```bash
+./hepyy-pod.sh gpu-setup-deb
+```
+
+This adds NVIDIA's apt repo (if needed), installs `nvidia-container-toolkit`,
+and generates the CDI spec -- idempotent, safe to re-run. It does require
+`sudo` (prompted interactively). `--help` also prints the equivalent manual
+commands if you'd rather run them yourself or you're on a different distro.
 
 ## Self-updating
 
 ```bash
 hepyy-pod --update            # overwrite this script with the latest "main"
-hepyy-pod --update v0.2.28    # pin to a specific tag instead
+hepyy-pod --update v0.2.29    # pin to a specific tag instead
 ```
 
 Fetches `contrib/podman/hepyy-pod.sh` from the given ref, checks it looks

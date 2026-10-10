@@ -17,7 +17,7 @@ HEPYY_POD_HOME="${HEPYY_POD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/hepyy-pod
 # Pinned to a tag, not a branch, so `curl`-ing this script alone always
 # fetches the matching Dockerfile -- update HEPYY_POD_REF on release.
 HEPYY_POD_REPO_RAW_BASE="https://raw.githubusercontent.com/matplo/hepyy"
-HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.28}"
+HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.29}"
 HEPYY_POD_DOCKERFILE_PATH="contrib/podman/Dockerfile"
 HEPYY_POD_SCRIPT_PATH="contrib/podman/hepyy-pod.sh"
 
@@ -177,11 +177,18 @@ Subcommands:
                                    if one was rebuilt meanwhile.
   kernel list                     List installed Jupyter kernels
   kernel remove <name>            Remove a kernel installed by this script
+  gpu-setup-deb                   Install/configure NVIDIA Container Toolkit +
+                                   CDI for GPU passthrough, on a Debian/Ubuntu
+                                   host (apt-get specific). Idempotent; needs
+                                   sudo (prompts interactively, same as any
+                                   script calling it). Runs the exact steps
+                                   warn_missing_nvidia_ctk() would otherwise
+                                   just print for you to copy by hand.
 
 --update [ref]             Self-update THIS script file in place from GitHub.
                             Defaults to the "main" branch (latest, possibly
                             unreleased); pass a tag to pin, e.g. --update
-                            v0.2.28. Verifies the download looks like this
+                            v0.2.29. Verifies the download looks like this
                             script and passes a syntax check before
                             replacing it, and keeps the previous copy as
                             <script>.bak.
@@ -243,7 +250,8 @@ Examples:
   $(basename "$0") kernel install --name hep --display-name "HEP (podman)"
   $(basename "$0") main kernel install --name hep   # using a profile's mounts/storage
   $(basename "$0") --update            # self-update to latest "main"
-  $(basename "$0") --update v0.2.28    # self-update to a specific tag
+  $(basename "$0") --update v0.2.29    # self-update to a specific tag
+  $(basename "$0") gpu-setup-deb       # install/configure NVIDIA Container Toolkit (Debian/Ubuntu)
 
 If a CUDA driver is detected but GPU passthrough isn't actually working inside
 the container (e.g. nvidia-smi missing in-container), the NVIDIA Container
@@ -427,7 +435,10 @@ WARNING: CUDA detected on this host, but no NVIDIA Container Toolkit (nvidia-ctk
          NOT work (nvidia-smi etc. won't be visible inside the container), even
          though --gpus all is being passed.
 
-         To fix, run on the HOST (needs sudo). If your distro's default repos
+         On a Debian/Ubuntu host, run: hepyy-pod.sh gpu-setup-deb
+         (needs sudo) to do the setup below automatically.
+
+         To fix manually instead, run on the HOST (needs sudo). If your distro's default repos
          don't have the package (plain `apt-get install` errors with
          "Unable to locate package"), add NVIDIA's own repo first:
            curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
@@ -442,6 +453,49 @@ WARNING: CUDA detected on this host, but no NVIDIA Container Toolkit (nvidia-ctk
          After that, this script will automatically switch to
          --device nvidia.com/gpu=all for proper CDI-based GPU passthrough.
 EOF
+}
+
+# Automates the NVIDIA Container Toolkit + CDI setup for GPU passthrough on
+# a Debian/Ubuntu host (apt-get specific -- a future gpu-setup-rpm would
+# cover dnf/zypper hosts). Idempotent: skips the repo-add/install steps if
+# nvidia-ctk is already present, and re-running after a partial failure or
+# on a host with some pieces already in place is safe. Runs `sudo` directly
+# (will prompt for a password interactively, same as any script calling it)
+# rather than just printing commands to copy -- that's the point of this
+# subcommand over the manual instructions in warn_missing_nvidia_ctk().
+cmd_gpu_setup_deb() {
+    if ! command -v apt-get >/dev/null 2>&1; then
+        echo "ERROR: gpu-setup-deb is Debian/Ubuntu-specific (needs apt-get)," >&2
+        echo "       which isn't on PATH on this host. See --help for the manual" >&2
+        echo "       steps if you're on a different distro." >&2
+        exit 1
+    fi
+
+    if command -v nvidia-ctk >/dev/null 2>&1; then
+        echo "INFO: nvidia-ctk already present, skipping repo setup/install" >&2
+    else
+        local keyring=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+        local list_file=/etc/apt/sources.list.d/nvidia-container-toolkit.list
+        if [[ -f "$list_file" ]]; then
+            echo "INFO: $list_file already exists, skipping repo add" >&2
+        else
+            echo "INFO: adding NVIDIA Container Toolkit apt repo" >&2
+            curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o "$keyring"
+            curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+                sed "s#deb https://#deb [signed-by=$keyring] https://#g" | \
+                sudo tee "$list_file" >/dev/null
+        fi
+        echo "INFO: installing nvidia-container-toolkit" >&2
+        sudo apt-get update
+        sudo apt-get install -y nvidia-container-toolkit
+    fi
+
+    echo "INFO: generating CDI spec" >&2
+    sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+    echo "INFO: current CDI devices:" >&2
+    nvidia-ctk cdi list
+
+    echo "INFO: done. Re-run 'hepyy-pod.sh run' -- GPU passthrough should now work via CDI." >&2
 }
 
 cmd_run() {
@@ -724,7 +778,7 @@ HELPER
 }
 
 PROFILES_DIR="$HEPYY_POD_HOME/profiles"
-RESERVED_NAMES=(build run profile kernel -h --help)
+RESERVED_NAMES=(build run profile kernel gpu-setup-deb -h --help)
 
 is_reserved_name() {
     local name="$1" r
@@ -825,7 +879,7 @@ load_profile() {
 # branch (the latest, possibly-unreleased version) rather than the pinned
 # HEPYY_POD_REF tag this running copy was built against -- that's the point
 # of --update: pick up newer fixes/features. Pass a tag/branch explicitly to
-# pin, e.g. --update v0.2.28.
+# pin, e.g. --update v0.2.29.
 cmd_update() {
     local ref="${1:-main}"
     local self
@@ -898,6 +952,9 @@ case "$subcommand" in
         ;;
     kernel)
         cmd_kernel "$@"
+        ;;
+    gpu-setup-deb)
+        cmd_gpu_setup_deb "$@"
         ;;
     -h|--help)
         usage
