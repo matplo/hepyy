@@ -9,7 +9,7 @@ Download the script, inspect it, then run it (recommended over piping
 `curl | bash` blindly):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.29/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
+curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.30/contrib/podman/hepyy-pod.sh -o hepyy-pod.sh
 chmod +x hepyy-pod.sh
 less hepyy-pod.sh   # read it before running, especially the first time
 ./hepyy-pod.sh build
@@ -22,7 +22,7 @@ automatically fetches the matching `Dockerfile` from the same pinned repo tag.
 If you'd rather clone the whole thing:
 
 ```bash
-git clone --branch v0.2.29 https://github.com/matplo/hepyy
+git clone --branch v0.2.30 https://github.com/matplo/hepyy
 cd hepyy/contrib/podman
 ./hepyy-pod.sh build
 ./hepyy-pod.sh run
@@ -35,7 +35,7 @@ as above):
 
 ```bash
 mkdir -p ~/.local/bin
-curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.29/contrib/podman/hepyy-pod.sh -o ~/.local/bin/hepyy-pod
+curl -fsSL https://raw.githubusercontent.com/matplo/hepyy/v0.2.30/contrib/podman/hepyy-pod.sh -o ~/.local/bin/hepyy-pod
 chmod +x ~/.local/bin/hepyy-pod
 hepyy-pod build   # make sure ~/.local/bin is on $PATH first
 ```
@@ -52,7 +52,7 @@ below for why that's a small text file, not the actual image storage.
   host; if found, generates a CUDA-flavored Dockerfile on the fly (matching
   `nvidia/cuda:<version>-devel-ubuntu22.04`) and tags the image
   `dev-env-cuda-<version>` instead of plain `dev-env`.
-- **`run [--workspace <dir>] [--hepyy-packages <dir>] [-- <cmd> ...]`**: runs
+- **`run [--workspace <dir>] [--hepyy-packages <dir>] [--home <dir>] [--storage-root <dir>] [-- <cmd> ...]`**: runs
   a container from the matching image.
   - `--workspace` mounts a host directory to `/workspace` (your code and
     results). Defaults to `$PWD` if omitted (with a warning).
@@ -101,10 +101,12 @@ first build after switching starts from scratch.
 ## Named profiles
 
 Register a `(storage-root, hepyy-packages)` pair under a short name, then
-invoke it by putting the name before the subcommand:
+invoke it by putting the name before the subcommand. `--workspace` is also
+optional on `profile add` -- useful if a profile should always mean the same
+project directory too, not just the same image/package set:
 
 ```bash
-./hepyy-pod.sh profile add blue --storage-root /scratch/hepyy-blue --hepyy-packages /scratch/pkgs-blue
+./hepyy-pod.sh profile add blue --storage-root /scratch/hepyy-blue --hepyy-packages /scratch/pkgs-blue --workspace /scratch/proj-blue
 ./hepyy-pod.sh profile add red  --storage-root /scratch/hepyy-red  --hepyy-packages /scratch/pkgs-red
 
 ./hepyy-pod.sh blue build
@@ -117,10 +119,13 @@ invoke it by putting the name before the subcommand:
 Each profile is a fully independent podman image store and package set --
 `blue` and `red` above never see each other's images or packages, so this is
 a clean way to keep e.g. different CUDA builds or different package sets
-side by side without them interfering.
+side by side without them interfering. `red` didn't set `--workspace`, so
+`red run` still defaults to `$PWD` (with the usual warning) exactly as if no
+profile were in use.
 
-An explicit `--storage-root`/`--hepyy-packages` flag on the command line
-still overrides a profile's stored value for that one invocation:
+An explicit `--storage-root`/`--hepyy-packages`/`--workspace` flag on the
+command line still overrides a profile's stored value for that one
+invocation:
 
 ```bash
 ./hepyy-pod.sh blue run --hepyy-packages /scratch/pkgs-experimental -- ...
@@ -213,7 +218,7 @@ commands if you'd rather run them yourself or you're on a different distro.
 
 ```bash
 hepyy-pod --update            # overwrite this script with the latest "main"
-hepyy-pod --update v0.2.29    # pin to a specific tag instead
+hepyy-pod --update v0.2.30    # pin to a specific tag instead
 ```
 
 Fetches `contrib/podman/hepyy-pod.sh` from the given ref, checks it looks

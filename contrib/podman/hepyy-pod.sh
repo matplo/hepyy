@@ -17,15 +17,18 @@ HEPYY_POD_HOME="${HEPYY_POD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/hepyy-pod
 # Pinned to a tag, not a branch, so `curl`-ing this script alone always
 # fetches the matching Dockerfile -- update HEPYY_POD_REF on release.
 HEPYY_POD_REPO_RAW_BASE="https://raw.githubusercontent.com/matplo/hepyy"
-HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.29}"
+HEPYY_POD_REF="${HEPYY_POD_REF:-v0.2.30}"
 HEPYY_POD_DOCKERFILE_PATH="contrib/podman/Dockerfile"
 HEPYY_POD_SCRIPT_PATH="contrib/podman/hepyy-pod.sh"
 
-# PROFILE_STORAGE_ROOT / PROFILE_HEPYY_PACKAGES are set by a profile (see
-# cmd_profile / the profile dispatch below) and act as a layer of defaults
-# beneath explicit flags but above $HEPYY_POD_STORAGE_ROOT/$SCRATCH.
+# PROFILE_STORAGE_ROOT / PROFILE_HEPYY_PACKAGES / PROFILE_WORKSPACE are set
+# by a profile (see cmd_profile / the profile dispatch below) and act as a
+# layer of defaults beneath explicit flags but above $HEPYY_POD_STORAGE_ROOT/
+# $SCRATCH (for storage-root) or $PWD (for workspace). PROFILE_WORKSPACE is
+# optional -- a profile need not set one, in which case $PWD is still used.
 PROFILE_STORAGE_ROOT=""
 PROFILE_HEPYY_PACKAGES=""
+PROFILE_WORKSPACE=""
 
 # Resolves the storage root for podman's image/container store AND the
 # default hepyy-packages parent dir -- precedence (highest first):
@@ -153,9 +156,11 @@ Subcommands:
   run [--workspace <dir>] [--hepyy-packages <dir>] [--home <dir>]
       [--storage-root <dir>] [-- <cmd> [args...]]
                                    Run a container from the matching image
-  profile add <name> --storage-root <dir> --hepyy-packages <dir>
-                                   Register a named (storage-root, hepyy-packages)
-                                   pair, usable as: $(basename "$0") <name> build|run ...
+  profile add <name> --storage-root <dir> --hepyy-packages <dir> [--workspace <dir>]
+                                   Register a named (storage-root, hepyy-packages[,
+                                   workspace]) tuple, usable as: $(basename "$0") <name> build|run ...
+                                   --workspace is optional: a profile need not
+                                   set one, in which case \$PWD is still used.
   profile list                    List registered profiles
   profile rm <name>                Remove a registered profile
   kernel install [--name <name>] [--display-name <name>] [--net <mode>]
@@ -188,7 +193,7 @@ Subcommands:
 --update [ref]             Self-update THIS script file in place from GitHub.
                             Defaults to the "main" branch (latest, possibly
                             unreleased); pass a tag to pin, e.g. --update
-                            v0.2.29. Verifies the download looks like this
+                            v0.2.30. Verifies the download looks like this
                             script and passes a syntax check before
                             replacing it, and keeps the previous copy as
                             <script>.bak.
@@ -225,12 +230,15 @@ Options for 'build' and 'run':
                             fallback ~/.local/share/hepyy-pod-storage (WARNING
                             printed, since this counts against \$HOME quota).
 
-Named profiles: register a (storage-root, hepyy-packages) pair once, then
-invoke it by name as the first argument, before the subcommand:
-  $(basename "$0") profile add blue --storage-root /scratch/hepyy-blue --hepyy-packages /scratch/pkgs-blue
+Named profiles: register a (storage-root, hepyy-packages, optionally
+workspace) tuple once, then invoke it by name as the first argument, before
+the subcommand:
+  $(basename "$0") profile add blue --storage-root /scratch/hepyy-blue --hepyy-packages /scratch/pkgs-blue --workspace /scratch/proj-blue
   $(basename "$0") blue run -- hepyy install sherpa/2.2.15
-An explicit --storage-root/--hepyy-packages flag after the profile name still
-overrides that profile's stored value for that one invocation.
+An explicit --storage-root/--hepyy-packages/--workspace flag after the
+profile name still overrides that profile's stored value for that one
+invocation; omitting --workspace from 'profile add' leaves \$PWD as the
+default, same as without a profile.
 
 CUDA detection can be overridden:
   NO_CUDA=1                        force plain (no-GPU) build/run
@@ -245,12 +253,12 @@ Examples:
   NO_CUDA=1 $(basename "$0") build
   $(basename "$0") build --home ~/.local/hepyy-pod   # e.g. when installed into ~/bin
   $(basename "$0") build --storage-root \$SCRATCH/hepyy-pod-storage   # e.g. on Perlmutter
-  $(basename "$0") profile add blue --storage-root /scratch/hepyy-blue --hepyy-packages /scratch/pkgs-blue
+  $(basename "$0") profile add blue --storage-root /scratch/hepyy-blue --hepyy-packages /scratch/pkgs-blue --workspace /scratch/proj-blue
   $(basename "$0") blue run -- hepyy install jewel/2.6.0-custom
   $(basename "$0") kernel install --name hep --display-name "HEP (podman)"
   $(basename "$0") main kernel install --name hep   # using a profile's mounts/storage
   $(basename "$0") --update            # self-update to latest "main"
-  $(basename "$0") --update v0.2.29    # self-update to a specific tag
+  $(basename "$0") --update v0.2.30    # self-update to a specific tag
   $(basename "$0") gpu-setup-deb       # install/configure NVIDIA Container Toolkit (Debian/Ubuntu)
 
 If a CUDA driver is detected but GPU passthrough isn't actually working inside
@@ -503,7 +511,7 @@ cmd_run() {
     cuda_ver="$(detect_cuda_version)"
     image_tag="$(image_tag_for "$cuda_ver")"
 
-    local workspace_dir=""
+    local workspace_dir="$PROFILE_WORKSPACE"
     local packages_dir="$PROFILE_HEPYY_PACKAGES"
     local storage_root_flag=""
     local -a passthrough=()
@@ -680,7 +688,7 @@ cmd_kernel_install() {
 
     local name="$image_tag"
     local display_name="HEP (podman $image_tag)"
-    local workspace_dir="" packages_dir="$PROFILE_HEPYY_PACKAGES" storage_root_flag=""
+    local workspace_dir="$PROFILE_WORKSPACE" packages_dir="$PROFILE_HEPYY_PACKAGES" storage_root_flag=""
     # Rootless podman's default network namespace isolates the container's
     # loopback from the host's, so ipykernel's ZMQ sockets (bound to
     # 127.0.0.1 per the connection file written by the Jupyter server on the
@@ -803,7 +811,7 @@ cmd_profile() {
                 echo "ERROR: '$name' is a reserved name, pick another" >&2
                 exit 1
             fi
-            local p_storage="" p_packages=""
+            local p_storage="" p_packages="" p_workspace=""
             while [[ $# -gt 0 ]]; do
                 case "$1" in
                     --storage-root)
@@ -812,6 +820,10 @@ cmd_profile() {
                         ;;
                     --hepyy-packages)
                         p_packages="$2"
+                        shift 2
+                        ;;
+                    --workspace)
+                        p_workspace="$2"
                         shift 2
                         ;;
                     *)
@@ -828,12 +840,13 @@ cmd_profile() {
             {
                 echo "STORAGE_ROOT=$p_storage"
                 echo "HEPYY_PACKAGES=$p_packages"
+                echo "WORKSPACE=$p_workspace"
             } > "$PROFILES_DIR/$name.conf"
-            echo "INFO: registered profile '$name' -> storage-root=$p_storage hepyy-packages=$p_packages" >&2
+            echo "INFO: registered profile '$name' -> storage-root=$p_storage hepyy-packages=$p_packages${p_workspace:+ workspace=$p_workspace}" >&2
             ;;
         list)
             if [[ ! -d "$PROFILES_DIR" ]] || [[ -z "$(ls -A "$PROFILES_DIR" 2>/dev/null)" ]]; then
-                echo "No profiles registered. Use: $(basename "$0") profile add <name> --storage-root <dir> --hepyy-packages <dir>"
+                echo "No profiles registered. Use: $(basename "$0") profile add <name> --storage-root <dir> --hepyy-packages <dir> [--workspace <dir>]"
                 return 0
             fi
             local f name
@@ -857,7 +870,7 @@ cmd_profile() {
             echo "INFO: removed profile '$name'" >&2
             ;;
         *)
-            echo "Usage: $(basename "$0") profile add <name> --storage-root <dir> --hepyy-packages <dir>" >&2
+            echo "Usage: $(basename "$0") profile add <name> --storage-root <dir> --hepyy-packages <dir> [--workspace <dir>]" >&2
             echo "       $(basename "$0") profile list" >&2
             echo "       $(basename "$0") profile rm <name>" >&2
             exit 1
@@ -865,21 +878,28 @@ cmd_profile() {
     esac
 }
 
-# Loads $PROFILES_DIR/<name>.conf into PROFILE_STORAGE_ROOT/PROFILE_HEPYY_PACKAGES,
-# which act as defaults beneath explicit --storage-root/--hepyy-packages flags.
+# Loads $PROFILES_DIR/<name>.conf into PROFILE_STORAGE_ROOT/
+# PROFILE_HEPYY_PACKAGES/PROFILE_WORKSPACE, which act as defaults beneath
+# explicit --storage-root/--hepyy-packages/--workspace flags. WORKSPACE may
+# be absent in a profile written before --workspace support was added (or
+# simply left unset by `profile add`), so it's reset to "" first -- set -u
+# would otherwise error referencing it, and this also avoids leaking a
+# previous profile's workspace into one that doesn't set it.
 load_profile() {
     local name="$1"
+    local STORAGE_ROOT="" HEPYY_PACKAGES="" WORKSPACE=""
     # shellcheck disable=SC1090
     source "$PROFILES_DIR/$name.conf"
     PROFILE_STORAGE_ROOT="$STORAGE_ROOT"
     PROFILE_HEPYY_PACKAGES="$HEPYY_PACKAGES"
+    PROFILE_WORKSPACE="$WORKSPACE"
 }
 
 # Self-updates THIS script file in place from GitHub. Defaults to the "main"
 # branch (the latest, possibly-unreleased version) rather than the pinned
 # HEPYY_POD_REF tag this running copy was built against -- that's the point
 # of --update: pick up newer fixes/features. Pass a tag/branch explicitly to
-# pin, e.g. --update v0.2.29.
+# pin, e.g. --update v0.2.30.
 cmd_update() {
     local ref="${1:-main}"
     local self
