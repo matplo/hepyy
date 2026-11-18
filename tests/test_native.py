@@ -137,3 +137,33 @@ def test_loader_rejects_mixed_fastjet_before_dlopen(loader, monkeypatch, already
         obj.load('fjcontrib')
     obj._setup_cppyy.assert_not_called()
     assert 'fjcontrib' not in obj._loaded
+
+
+def test_canonical_library_loaded_without_alias(tmp_path, monkeypatch):
+    import hepyy.loader as module
+    obj = Loader()
+    monkeypatch.setattr(obj, '_preload_cppyy_deps', lambda: None)
+    monkeypatch.setitem(sys.modules, 'cppyy', Mock())
+    canonical = tmp_path / 'libfastjet.0.dylib'
+    canonical.touch()
+    load = Mock()
+    monkeypatch.setattr(module.ctypes, 'CDLL', load)
+    obj._setup_cppyy(dict(provider='wheel', include_dir=str(tmp_path), lib_dir=str(tmp_path),
+                         library_files={'fastjet': canonical.name}), [], ['fastjet'], False)
+    load.assert_called_once_with(str(canonical), module.ctypes.RTLD_GLOBAL)
+
+
+def test_conda_api_headers_are_verified(tmp_path, monkeypatch):
+    api = tmp_path / 'include/python3.14/CPyCppyy'
+    api.mkdir(parents=True)
+    (api / 'API.h').touch()
+    backend = tmp_path / 'lib/site-packages/cppyy_backend'
+    (backend / 'include').mkdir(parents=True)
+    monkeypatch.delitem(sys.modules, 'cppyy', raising=False)
+    monkeypatch.setitem(sys.modules, 'cppyy_backend', Mock(__file__=str(backend / '__init__.py')))
+    monkeypatch.delenv('CPPYY_API_PATH', raising=False)
+    monkeypatch.setattr(sys, 'prefix', str(tmp_path))
+    monkeypatch.setattr(sys, 'base_prefix', str(tmp_path))
+    Loader()._ensure_cppyy_api_path()
+    import os
+    assert os.environ['CPPYY_API_PATH'] == str(api.parent)

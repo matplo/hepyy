@@ -361,16 +361,19 @@ class Loader:
             candidates = glob.glob(
                 str(prefix / 'include' / 'site' / 'python*' / 'CPyCppyy')
             )
-            if candidates:
-                os.environ['CPPYY_API_PATH'] = candidates[0]
-                return
+            # conda/venv layouts put the API under the interpreter prefix,
+            # not necessarily alongside cppyy_backend in site-packages.
+            for base in dict.fromkeys((sys.prefix, sys.base_prefix)):
+                candidates.extend(glob.glob(str(pathlib.Path(base) / 'include' / 'python*' / 'CPyCppyy')))
             # Standard layout: include/CPyCppyy/ or just include/ next to cppyy_backend
-            for probe in (
+            candidates.extend((
                 pathlib.Path(_cb.__file__).parent / 'include' / 'CPyCppyy',
-                pathlib.Path(_cb.__file__).parent / 'include',
-            ):
-                if probe.is_dir():
-                    os.environ['CPPYY_API_PATH'] = str(probe)
+                pathlib.Path(prefix) / 'include' / 'CPyCppyy',
+            ))
+            for candidate in candidates:
+                probe = pathlib.Path(candidate)
+                if (probe / 'API.h').is_file():
+                    os.environ['CPPYY_API_PATH'] = str(probe.parent)
                     return
         except ImportError:
             pass
@@ -466,8 +469,13 @@ class Loader:
                         os.environ[_var] = f"{_lib_dir_str}:{_val}" if _val else _lib_dir_str
         for lib_name in libraries:
             loaded = False
-            for ext in (".dylib", ".so"):
-                candidate = lib_path / f"lib{lib_name}{ext}"
+            # Wheels cannot preserve symlinks. Loading an unversioned copy and
+            # later its SONAME copy can create two C++ library instances on
+            # macOS. Native manifests identify the single canonical file.
+            canonical = record.get("library_files", {}).get(lib_name)
+            candidates = ([lib_path / canonical] if canonical else
+                          [lib_path / f"lib{lib_name}{ext}" for ext in (".dylib", ".so")])
+            for candidate in candidates:
                 if candidate.exists():
                     if verbose:
                         print(f"Loading {candidate}")
