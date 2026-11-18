@@ -955,3 +955,9 @@ and `{<name>_prefix}` for every package currently in the registry.
 | Default (no venv, no conda) | — | `./packages/` |
 
 Legacy env var `HEPYY_BUILD_DIR` and toml key `build_dir` are still accepted.
+
+## Native wheel development
+
+Pre-publication FastJet, fjcontrib and Pythia8 wheels can be loaded through the
+existing shared cppyy interface. See [native wheel installation and compatibility](NATIVE_WHEELS.md)
+for artifact installation, conda-forge support and current limitations.
