@@ -32,6 +32,7 @@ def _topo_sort(names: list, registry: dict) -> list:
 
 class Loader:
     _loaded: set = set()
+    _loaded_records: dict = {}
 
     def load(
         self,
@@ -75,6 +76,10 @@ class Loader:
                 name = alt  # use the canonical registry name going forward
 
         if record is None:
+            from .native import wheel_record
+            record = wheel_record(name, version)
+
+        if record is None:
             if install_if_missing:
                 from .builder import build_package
                 build_package(name, version=version, verbose=verbose)
@@ -90,6 +95,10 @@ class Loader:
         from .recipe import find_recipe
         from .exceptions import RecipeNotFoundError
         try:
+            if record.get("provider") == "wheel":
+                # A wheel's metadata describes its actual payload. A recipe
+                # cache must never override it (e.g. fragile vs per-contrib libs).
+                raise RecipeNotFoundError(name)
             recipe = find_recipe(
                 name,
                 version=record["version"],
@@ -107,6 +116,23 @@ class Loader:
             deps         = record.get("depends_on", [])
             python_paths = []
 
+        # Validate the selected dependency provider before dlopen. A wheel
+        # must not link a second FastJet alongside an already loaded source one.
+        if record.get("provider") == "wheel":
+            from .native import validate_dependencies, wheel_record
+            selected = {}
+            for dep in deps:
+                dep_record = self._loaded_records.get(dep)
+                if dep_record is None:
+                    shell_ver = self._shell_loaded_version(dep)
+                    shell_prefix = os.environ.get(f"HEPYY_LOADED_{dep.upper()}_PREFIX")
+                    if shell_ver and shell_prefix:
+                        dep_record = self._record_from_prefix(dep, shell_ver, pathlib.Path(shell_prefix), reg)
+                    else:
+                        dep_record = reg.get(dep) or wheel_record(dep)
+                selected[dep] = dep_record
+            validate_dependencies(record, selected)
+
         # Load dependencies first
         if deps:
             all_packages = reg.all_packages()
@@ -116,6 +142,9 @@ class Loader:
                     self.load(dep, verbose=verbose)
 
         self._setup_python_paths(record, python_paths, verbose)
+        if record.get("provider") == "wheel" and name == "pythia8":
+            # PYTHIA reads this at construction time; default to pip-owned data.
+            os.environ.setdefault("PYTHIA8DATA", str(pathlib.Path(record["prefix"]) / "share/Pythia8/xmldoc"))
         self._setup_cppyy(record, headers, libraries, verbose)
         # Don't shadow a real Python module (e.g. lhapdf SWIG bindings) with a
         # cppyy proxy. If a proper importable module exists for this name, leave
@@ -125,6 +154,7 @@ class Loader:
             if importlib.util.find_spec(name) is None:
                 self._inject_proxy_module(name, namespace)
         self._loaded.add(name)
+        self._loaded_records[name] = record
 
     def _shell_loaded_version(self, name: str) -> Optional[str]:
         key = f"HEPYY_LOADED_{name.upper().replace('-', '_')}"
@@ -286,6 +316,12 @@ class Loader:
         """
         if 'cppyy' in sys.modules:
             return
+        # A conda-forge runtime is a matched stack. Do not shadow one component
+        # with an old heyy --target installation from a shared registry.
+        import importlib.util
+        if any((pathlib.Path(p) / "conda-meta").is_dir() for p in (sys.prefix, sys.base_prefix)):
+            if importlib.util.find_spec("cppyy") is not None:
+                return
         from .registry import get_registry
         rec = get_registry().get('cppyy')
         if rec is None:
@@ -342,8 +378,8 @@ class Loader:
     def _preload_cppyy_deps(self) -> None:
         """Pre-load cppyy backend dependencies that may be missing from rpath."""
         self._ensure_cxx17_headers()
-        self._ensure_cppyy_api_path()
         self._ensure_cppyy_on_syspath()
+        self._ensure_cppyy_api_path()
         self._ensure_compatible_macos_sdk()
         import sys
         _search = []
@@ -402,6 +438,8 @@ class Loader:
         cppyy.add_include_path(record["include_dir"])
 
         lib_path = pathlib.Path(record["lib_dir"])
+        strict = record.get("provider") == "wheel"
+        cppyy.add_library_path(str(lib_path))
 
         # Prepend this package's own lib_dir to DYLD/LD_LIBRARY_PATH so that a
         # library loaded below can resolve its *own* transitive dependencies
@@ -438,8 +476,12 @@ class Loader:
                         loaded = True
                         break
                     except OSError as e:
+                        if strict:
+                            raise RuntimeError(f"Cannot load native wheel library {candidate}") from e
                         warnings.warn(f"ctypes.CDLL failed for {candidate}: {e}")
             if not loaded:
+                if strict:
+                    raise FileNotFoundError(f"Native wheel is missing lib{lib_name} in {lib_path}")
                 try:
                     cppyy.load_library(lib_name)
                 except Exception as e:
@@ -449,6 +491,8 @@ class Loader:
             try:
                 cppyy.include(header)
             except Exception as e:
+                if strict:
+                    raise RuntimeError(f"Cannot parse native wheel header {header}") from e
                 warnings.warn(
                     f"[hepyy] Could not include '{header}': {e}\n"
                     "  The proxy module will be created but attribute access will fail.\n"
