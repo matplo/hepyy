@@ -9,9 +9,15 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-15]
-        python: ['3.9', '3.12', '3.14']
+        include:
+          - {os: ubuntu-22.04, python: '3.9'}
+          - {os: ubuntu-24.04, python: '3.12'}
+          - {os: ubuntu-24.04, python: '3.14'}
+          - {os: macos-15-intel, python: '3.9'}
+          - {os: macos-15, python: '3.12'}
+          - {os: macos-15, python: '3.14'}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

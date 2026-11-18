@@ -118,3 +118,22 @@ def test_conda_cppyy_not_shadowed(tmp_path, monkeypatch):
     before = list(sys.path)
     Loader()._ensure_cppyy_on_syspath()
     assert sys.path == before
+
+
+@pytest.mark.parametrize('already_loaded', [False, True])
+def test_loader_rejects_mixed_fastjet_before_dlopen(loader, monkeypatch, already_loaded):
+    obj, reg = loader
+    source = dict(version='3.5.1', prefix='/source', include_dir='/source/include', lib_dir='/source/lib')
+    if already_loaded:
+        obj._loaded.add('fastjet')
+        obj._loaded_records['fastjet'] = source
+    else:
+        reg.register('fastjet', '3.5.1', source)
+    contrib = dict(provider='wheel', name='fjcontrib', version='1.102', prefix='/wheel',
+                   headers=[], libraries=['fastjetcontribfragile'], depends_on=['fastjet'],
+                   requires_native={'fastjet': 'test-abi'})
+    monkeypatch.setattr(native, 'wheel_record', lambda name, version=None: contrib)
+    with pytest.raises(RuntimeError, match='requires fastjet wheel ABI'):
+        obj.load('fjcontrib')
+    obj._setup_cppyy.assert_not_called()
+    assert 'fjcontrib' not in obj._loaded
