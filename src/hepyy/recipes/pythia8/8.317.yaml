@@ -1,6 +1,6 @@
 name: pythia8
 version: "8.317"
-url: "https://pythia.org/download/pythia83/pythia{version_nodot}.tgz"
+url: "https://pythia.org/releases/pythia83/pythia{version_nodot}.tgz"
 build_system: script
 make_jobs: 4
 verify_binary: pythia8-config
@@ -12,3 +12,6 @@ cppyy:
     - Pythia8/Pythia.h
   libraries:
     - pythia8
+
+native_wheel:
+  sha256: "1ae551d14dac495ddfe6b344792035ebe410fe6c6004d44a335e0ece0e745adf"

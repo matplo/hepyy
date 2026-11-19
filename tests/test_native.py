@@ -167,3 +167,34 @@ def test_conda_api_headers_are_verified(tmp_path, monkeypatch):
     Loader()._ensure_cppyy_api_path()
     import os
     assert os.environ['CPPYY_API_PATH'] == str(api.parent)
+
+
+def test_pip_bundle_loads_all_native_members_without_registry(loader, monkeypatch):
+    from hepyy.native import PACKAGES
+    obj, reg = loader
+    monkeypatch.setattr(native, 'wheel_record', lambda name, version=None: {'provider':'wheel'})
+    obj.load = Mock()
+    Loader.load(obj, 'hepbundle')
+    assert [c.args[0] for c in obj.load.call_args_list] == list(PACKAGES)
+    assert 'hepbundle' in obj._loaded
+    assert not reg._path.exists()
+
+
+def test_lhapdf_preserves_user_data_search_path(loader, monkeypatch):
+    obj, _ = loader
+    record=dict(name='lhapdf',version='6.5.5',provider='wheel',prefix='/native/lhapdf',
+                include_dir='/native/lhapdf/include',lib_dir='/native/lhapdf/lib',
+                headers=[],libraries=[],depends_on=[])
+    monkeypatch.setattr(native,'wheel_record',lambda name,version=None:record)
+    monkeypatch.setenv('LHAPDF_DATA_PATH','/user/pdfsets')
+    obj.load('lhapdf')
+    import os
+    assert os.environ['LHAPDF_DATA_PATH']=='/user/pdfsets:/native/lhapdf/share/LHAPDF'
+
+
+def test_autoload_is_noop_without_shell_markers():
+    import subprocess, os
+    source = Path(__file__).parents[1] / 'src/hepyy_autoload.pth'
+    code = source.read_text() + "\nassert 'hepyy' not in __import__('sys').modules"
+    env = {k:v for k,v in os.environ.items() if not k.startswith('HEPYY_LOADED_')}
+    subprocess.run([sys.executable,'-S','-c',code],env=env,check=True)

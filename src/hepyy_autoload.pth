@@ -1,1 +1,1 @@
-import hepyy._autoload
+import os; __import__('hepyy._autoload') if any(key.startswith('HEPYY_LOADED_') for key in os.environ) else None

@@ -4,7 +4,7 @@ from importlib import metadata
 from pathlib import Path
 
 
-PACKAGES = {name: f"hepyy-{name}" for name in ("fastjet", "fjcontrib", "pythia8")}
+PACKAGES = {name: f"hepyy-{name}" for name in ("fastjet", "fjcontrib", "hepmc3", "lhapdf", "pythia8")}
 
 
 def wheel_record(name, version=None):

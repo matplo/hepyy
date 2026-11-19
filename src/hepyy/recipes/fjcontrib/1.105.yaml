@@ -1,0 +1,31 @@
+name: fjcontrib
+version: "1.105"
+url: "https://fastjet.hepforge.org/contrib/downloads/fjcontrib-{version}.tar.gz"
+build_system: script
+depends_on:
+  - fastjet
+make_jobs: 4
+
+build_script: "1.105.sh"
+cppyy:
+  namespace: fastjet::contrib
+  headers:
+    - fastjet/contrib/SoftDrop.hh
+    - fastjet/contrib/RecursiveSymmetryCutBase.hh
+    - fastjet/contrib/Nsubjettiness.hh
+    - fastjet/contrib/AxesDefinition.hh
+    - fastjet/contrib/MeasureDefinition.hh
+    - fastjet/contrib/EnergyCorrelator.hh
+    - fastjet/contrib/LundGenerator.hh
+  libraries:
+    - RecursiveTools
+    - Nsubjettiness
+    - EnergyCorrelator
+    - LundPlane
+    - ConstituentSubtractor
+    - SoftKiller
+    - VariableR
+    - IFNPlugin
+
+native_wheel:
+  sha256: "21ad3d62a53b24fc89819c2f8a2cb519d77cbc1ad56be7daae5994a611907bc2"
