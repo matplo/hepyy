@@ -1,7 +1,7 @@
 name: Loader tests
 on:
   push:
-    branches: [main, 'feature/native-wheels']
+    branches: [main, 'feature/native-wheels', 'feature/hepbundle-wheels']
   pull_request:
 permissions:
   contents: read

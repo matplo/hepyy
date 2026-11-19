@@ -4,7 +4,7 @@ if command -v swig >/dev/null 2>&1; then
   python_flag="--with-python-sys-prefix"
 else
   echo "[lhapdf] swig not found — building without Python bindings"
-  python_flag="--without-python"
+  python_flag="--disable-python"
 fi
 ./configure --prefix={{ prefix }} --enable-shared $python_flag
 make -j{{ n_cores }}

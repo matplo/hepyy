@@ -49,6 +49,14 @@ class Loader:
 
         reg = get_registry()
 
+        if name == 'hepbundle' and version is None and reg.get(name) is None and not self._shell_loaded_version(name):
+            from .native import PACKAGES, wheel_record
+            if all(wheel_record(package) is not None for package in PACKAGES):
+                for package in PACKAGES:
+                    self.load(package, verbose=verbose)
+                self._loaded.add(name)
+                return
+
         # Check if shell-loaded version should take precedence
         shell_version = self._shell_loaded_version(name)
         record = None
@@ -142,6 +150,12 @@ class Loader:
                     self.load(dep, verbose=verbose)
 
         self._setup_python_paths(record, python_paths, verbose)
+        if record.get("provider") == "wheel" and name == "lhapdf":
+            data = str(pathlib.Path(record['prefix']) / 'share/LHAPDF')
+            paths = [p for p in os.environ.get('LHAPDF_DATA_PATH', '').split(':') if p]
+            if data not in paths:
+                paths.append(data)
+            os.environ['LHAPDF_DATA_PATH'] = ':'.join(paths)
         if record.get("provider") == "wheel" and name == "pythia8":
             # PYTHIA reads this at construction time; default to pip-owned data.
             os.environ.setdefault("PYTHIA8DATA", str(pathlib.Path(record["prefix"]) / "share/Pythia8/xmldoc"))

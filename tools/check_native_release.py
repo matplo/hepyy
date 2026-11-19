@@ -2,7 +2,10 @@
 import json
 import urllib.request
 
-for name, version in [('fastjet', '3.5.1.0'), ('fjcontrib', '1.102.0'), ('pythia8', '8.317.0')]:
+from pathlib import Path
+lock = json.loads(Path(__file__).with_name('native-packages.lock.json').read_text())
+for name, record in lock['packages'].items():
+    version = record['wheel_version']
     with urllib.request.urlopen(f'https://pypi.org/pypi/hepyy-{name}/{version}/json', timeout=30) as response:
         data = json.load(response)
     files = [f['filename'] for f in data['urls'] if not f.get('yanked')]

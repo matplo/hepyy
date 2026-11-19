@@ -1,0 +1,24 @@
+name: fastjet
+version: "3.5.3"
+url: "http://fastjet.fr/repo/fastjet-{version}.tar.gz"
+build_system: autotools
+configure_args:
+  - "--enable-shared"
+  - "--disable-static"
+  - "--enable-allplugins"
+make_jobs: 4
+verify_binary: fastjet-config
+cppyy:
+  namespace: fastjet
+  headers:
+    - fastjet/PseudoJet.hh
+    - fastjet/JetDefinition.hh
+    - fastjet/ClusterSequence.hh
+    - fastjet/ClusterSequenceArea.hh
+    - fastjet/Selector.hh
+    - fastjet/tools/GridMedianBackgroundEstimator.hh
+  libraries:
+    - fastjet
+
+native_wheel:
+  sha256: "279cce38e6ba01811b2f1913e582e50c3845acf68e97f92413ed45ac4bb8de9c"

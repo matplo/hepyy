@@ -15,3 +15,6 @@ cppyy:
     - HepMC3/GenVertex.h
   libraries:
     - HepMC3
+
+native_wheel:
+  sha256: "08240160b0f28dc3293aa4d61ce65e2d67cd597acf6faca439f2e46625f7e793"

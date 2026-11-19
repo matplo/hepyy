@@ -12,3 +12,6 @@ cppyy:
     - LHAPDF/LHAPDF.h
   libraries:
     - LHAPDF
+
+native_wheel:
+  sha256: "641d5ea0942b79e4447e15e5a33491ff3c7032d71d618119935e14ad27f5e3a5"
