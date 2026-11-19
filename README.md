@@ -735,7 +735,7 @@ Demo scripts live in the `demos/` directory:
 | `demos/demo_fastjet.py` | Basic FastJet jet finding |
 | `demos/demo_pythia_fastjet.py` | Pythia8 + FastJet: event generation and jet clustering |
 | `demos/demo_pythia_fastjet.ipynb` | Same as above in a Jupyter notebook |
-| `demos/demo_pythia_fastjet_root.py` | Pythia8 + FastJet → ROOT-format TTree (requires `uproot` and `numpy`) |
+| `demos/demo_pythia_fastjet_root.py` | Pythia8 + FastJet → ROOT-format ntuple (requires `uproot` and `numpy`) |
 | `demos/demo_pythia_fastjet_root_cppyy.py` | Pythia8 + FastJet → ROOT TTree using PyROOT (requires ROOT separately) |
 | `demos/demo_fjcontrib.py` | SoftDrop, Nsubjettiness τ₂₁, EnergyCorrelator C₂ on Pythia8 dijets |
 | `demos/demo_fjcontrib.ipynb` | Same as above in a Jupyter notebook with per-jet inspector table |
