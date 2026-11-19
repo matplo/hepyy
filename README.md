@@ -958,6 +958,13 @@ Legacy env var `HEPYY_BUILD_DIR` and toml key `build_dir` are still accepted.
 
 ## Native wheel development
 
-Pre-publication FastJet, fjcontrib and Pythia8 wheels can be loaded through the
-existing shared cppyy interface. See [native wheel installation and compatibility](NATIVE_WHEELS.md)
-for artifact installation, conda-forge support and current limitations.
+The pre-publication `hepbundle` pip extra supplies FastJet 3.5.3, fjcontrib 1.105,
+HepMC3, LHAPDF (including its upstream Python API and `lhapdf` command), and
+Pythia8 with its FastJet/HepMC3/LHAPDF interfaces. It uses the existing shared
+cppyy interface and preserves an installed conda-forge cppyy runtime.
+
+Until the public release, install from the candidate wheelhouse as described in
+[native wheel installation and compatibility](NATIVE_WHEELS.md). That guide
+also covers loading the bundle, PDF data and supported platforms. The
+[recipe-driven upgrade tool](https://github.com/matplo/hepyy-recipes/blob/main/wheels/UPGRADING.md)
+prepares later wheel candidates when recipes change.

@@ -3,7 +3,9 @@
 The expanded candidate follows hepbundle: FastJet 3.5.3, fjcontrib 1.105, HepMC3
 3.3.1, LHAPDF 6.5.5, and Pythia 8.317 built with all three external interfaces.
 Wheel packaging revisions are pinned in pyproject.toml and the native lock.
-These expanded candidates have not been published or merged as part of this work.
+The bundle support is merged; the expanded candidates are awaiting package-index
+rehearsal and public publication. They are not yet available through a normal
+public-index install.
 
 In a fresh, activated conda-forge cppyy environment, install the candidate from
 its local wheelhouse and this checkout:
