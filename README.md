@@ -956,15 +956,27 @@ and `{<name>_prefix}` for every package currently in the registry.
 
 Legacy env var `HEPYY_BUILD_DIR` and toml key `build_dir` are still accepted.
 
-## Native wheel development
+## Pip-installable HEP bundle
 
-The pre-publication `hepbundle` pip extra supplies FastJet 3.5.3, fjcontrib 1.105,
+The `hepbundle` pip extra supplies FastJet 3.5.3, fjcontrib 1.105,
 HepMC3, LHAPDF (including its upstream Python API and `lhapdf` command), and
 Pythia8 with its FastJet/HepMC3/LHAPDF interfaces. It uses the existing shared
 cppyy interface and preserves an installed conda-forge cppyy runtime.
 
-Until the public release, install from the candidate wheelhouse as described in
-[native wheel installation and compatibility](NATIVE_WHEELS.md). That guide
-also covers loading the bundle, PDF data and supported platforms. The
+On Linux x86_64, use a fresh virtual environment:
+
+```sh
+python -m pip install "hepyy[cppyy,hepbundle]>=0.2.31"
+```
+
+On macOS arm64 or Intel, activate a conda-forge environment with cppyy, then:
+
+```sh
+python -m pip install "hepyy[hepbundle]>=0.2.31"
+```
+
+The complete bundle requires CPython >=3.10. See
+[installation and compatibility](NATIVE_WHEELS.md) for environment setup,
+loading the bundle and installing PDF data. The
 [recipe-driven upgrade tool](https://github.com/matplo/hepyy-recipes/blob/main/wheels/UPGRADING.md)
 prepares later wheel candidates when recipes change.

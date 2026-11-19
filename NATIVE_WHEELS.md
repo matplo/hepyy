@@ -1,22 +1,37 @@
-# Pip-installable hepbundle candidate
+# Pip-installable hepbundle
 
-The expanded candidate follows hepbundle: FastJet 3.5.3, fjcontrib 1.105, HepMC3
+The pip bundle follows hepbundle: FastJet 3.5.3, fjcontrib 1.105, HepMC3
 3.3.1, LHAPDF 6.5.5, and Pythia 8.317 built with all three external interfaces.
 Wheel packaging revisions are pinned in pyproject.toml and the native lock.
-The bundle support is merged; the expanded candidates are awaiting package-index
-rehearsal and public publication. They are not yet available through a normal
-public-index install.
-
-In a fresh, activated conda-forge cppyy environment, install the candidate from
-its local wheelhouse and this checkout:
+On Linux x86_64, install into a fresh virtual environment:
 
 ```sh
-python -m pip install --find-links /path/to/wheelhouse '.[hepbundle]'
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install "hepyy[cppyy,hepbundle]>=0.2.31"
 ```
 
-On tested Linux pip hosts use `'.[cppyy,hepbundle]'`. cppyy stays optional so the
-conda-managed runtime remains untouched. Use CPython >=3.10 for the complete
-bundle. The base hepyy package and FastJet-only paths retain their own metadata.
+On macOS arm64 or Intel, use an activated conda-forge cppyy environment:
+
+```sh
+conda create -n hepbundle -c conda-forge python=3.12 cppyy pip
+conda activate hepbundle
+python -m pip install "hepyy[hepbundle]>=0.2.31"
+```
+
+If the activated environment already has compatible conda-forge cppyy, use just
+the final pip command. cppyy stays optional so the conda-managed runtime remains
+untouched. Use CPython >=3.10 for the complete bundle. Release CI covers Linux
+Python 3.10/3.12 and both Mac architectures with conda-forge cppyy/Python 3.12;
+local Apple Silicon checks also cover Python 3.14. Windows and Linux arm64 are
+not included in this wheel matrix. cppyy's JIT needs a compatible C++ toolchain.
+The base hepyy package and FastJet-only paths retain their own metadata.
+
+Install PDF data before the example below:
+
+```sh
+lhapdf install CT14lo
+```
 
 ```python
 import hepyy
