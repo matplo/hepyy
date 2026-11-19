@@ -1,8 +1,8 @@
 # hepyy
 
-A local HEP C++ package manager that downloads, compiles, and exposes packages as Python
-modules via [cppyy](https://cppyy.readthedocs.io/) — no ROOT, no conda, no system-wide
-installs required.
+A HEP C++ package manager that installs native wheels or builds packages from source
+and exposes them as Python modules through a shared
+[cppyy](https://cppyy.readthedocs.io/) interpreter.
 
 Supported packages out of the box: **FastJet**, **Pythia8**, **HepMC3**, **fjcontrib**, **LHAPDF6**.
 
@@ -13,13 +13,14 @@ Supported packages out of the box: **FastJet**, **Pythia8**, **HepMC3**, **fjcon
 
 ## Requirements
 
-- Python 3.9+ in a virtual environment (strongly recommended)
+- Python 3.9+ for the base package; CPython 3.10+ for the pip-installable bundle
+- A virtual environment or activated conda environment (strongly recommended)
 - A C++ compiler: `clang++` (macOS) or `g++` (Linux)
-- `cmake` (for HepMC3)
-- `swig` (for LHAPDF Python bindings — optional but recommended)
+- `cmake` (for building HepMC3 from source)
+- `swig` (optional, for the LHAPDF source recipe’s Python-enabled build)
 - Internet access for first-time package downloads
 
-On macOS with Homebrew:
+For source-build tools on macOS with Homebrew:
 ```bash
 brew install cmake swig
 ```
@@ -27,6 +28,64 @@ brew install cmake swig
 ---
 
 ## Installation
+
+### Pip-installable HEP bundle
+
+Starting with hepyy 0.2.31, the `hepbundle` extra installs **FastJet, fjcontrib,
+HepMC3, LHAPDF, and Pythia8** as native wheels. Pythia includes its external
+FastJet/HepMC3/LHAPDF interfaces; LHAPDF includes its upstream Python API and
+`lhapdf` command. The packages share the same native libraries and cppyy runtime.
+
+Wheels are available for **Linux x86_64** and **macOS arm64/Intel**, using
+**CPython 3.10+**. cppyy's JIT needs a compatible C++ toolchain. The native wheels
+include the libraries and headers, so their installation does not require
+building the five HEP packages or installing cmake/swig.
+
+**Linux — create a fresh venv:**
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install "hepyy[cppyy,hepbundle]>=0.2.31"
+```
+
+**macOS — use conda-forge cppyy:**
+
+```bash
+conda create -n hepbundle -c conda-forge python=3.12 cppyy pip
+conda activate hepbundle
+python -m pip install "hepyy[hepbundle]>=0.2.31"
+```
+
+If you already have a compatible conda-forge cppyy environment, activate it and
+run just the final pip command. Using the `hepbundle` extra on its own preserves
+the conda-managed cppyy runtime.
+
+**Install PDF data, then load the bundle:**
+
+```bash
+lhapdf install CT14lo
+```
+
+```python
+import hepyy
+hepyy.load("hepbundle")
+
+import fastjet as fj
+import fjcontrib, hepmc3, pythia8, lhapdf
+
+print(fj.JetDefinition(fj.antikt_algorithm, 0.4).description())
+pdf = lhapdf.mkPDF("CT14lo", 0)
+print(pdf.xfxQ(21, 0.1, 100.))
+```
+
+PDF sets are downloaded separately; use `LHAPDF_DATA_PATH` for custom data
+locations. See [installation and compatibility](NATIVE_WHEELS.md) for individual
+extras, supported runtimes and coexistence with source installations. Maintainers
+can follow the [recipe-driven upgrade guide](https://github.com/matplo/hepyy-recipes/blob/main/wheels/UPGRADING.md)
+to prepare later wheel releases when recipes change.
+
+### Package manager installation
 
 Create and activate a virtual environment, then install hepyy:
 
@@ -955,28 +1014,3 @@ and `{<name>_prefix}` for every package currently in the registry.
 | Default (no venv, no conda) | — | `./packages/` |
 
 Legacy env var `HEPYY_BUILD_DIR` and toml key `build_dir` are still accepted.
-
-## Pip-installable HEP bundle
-
-The `hepbundle` pip extra supplies FastJet 3.5.3, fjcontrib 1.105,
-HepMC3, LHAPDF (including its upstream Python API and `lhapdf` command), and
-Pythia8 with its FastJet/HepMC3/LHAPDF interfaces. It uses the existing shared
-cppyy interface and preserves an installed conda-forge cppyy runtime.
-
-On Linux x86_64, use a fresh virtual environment:
-
-```sh
-python -m pip install "hepyy[cppyy,hepbundle]>=0.2.31"
-```
-
-On macOS arm64 or Intel, activate a conda-forge environment with cppyy, then:
-
-```sh
-python -m pip install "hepyy[hepbundle]>=0.2.31"
-```
-
-The complete bundle requires CPython >=3.10. See
-[installation and compatibility](NATIVE_WHEELS.md) for environment setup,
-loading the bundle and installing PDF data. The
-[recipe-driven upgrade tool](https://github.com/matplo/hepyy-recipes/blob/main/wheels/UPGRADING.md)
-prepares later wheel candidates when recipes change.
