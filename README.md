@@ -61,6 +61,14 @@ If you already have a compatible conda-forge cppyy environment, activate it and
 run just the final pip command. Using the `hepbundle` extra on its own preserves
 the conda-managed cppyy runtime.
 
+**Load before importing:** pip installation supplies the native libraries;
+`hepyy.load()` creates their Python proxy modules in the current process.
+Call `hepyy.load("hepbundle")` before `import fastjet`, `fjcontrib`, `hepmc3`
+or `pythia8`. For FastJet alone, use `hepyy.load("fastjet")`. A bare
+`import fastjet` in a fresh session can raise `ModuleNotFoundError` until this
+initialization runs. Repeat it after restarting a Python process or notebook
+kernel. LHAPDF's upstream Python module is directly importable.
+
 **Install PDF data, then load the bundle:**
 
 ```bash
@@ -375,29 +383,41 @@ hepyy info fastjet       # full details for one package
 
 ### Loading with hepyy
 
+In a plain Python process or notebook, initialize the packages before importing
+their proxy modules. This applies to pip-installed native wheels and source
+installations:
+
 ```python
-# With the module system (recommended):
-#   module load fastjet pythia8 fjcontrib
-#   python myscript.py
-# then in myscript.py just:
-import fastjet, pythia8, fjcontrib   # autoload hook has already set everything up
-
-# Without the module system (Colab, bare venv):
 import hepyy
-hepyy.load("fastjet")
-hepyy.load("pythia8")
-hepyy.load("fjcontrib")   # hepyy.load() is a no-op if already loaded
-
-# Or pass a list — packages are loaded in order:
 hepyy.load(["fastjet", "pythia8", "fjcontrib"])
 
 import fastjet, pythia8, fjcontrib
-
-# Either way, packages are available as cppyy proxies:
 import cppyy
 jet = fastjet.PseudoJet(1.0, 0.0, 1.0, 1.414)
 print(jet.pt())
 ```
+
+Use `hepyy.load("hepbundle")` for the complete pip bundle, or
+`hepyy.load("fastjet")` for just FastJet. The call loads the shared C++ libraries
+and registers the Python proxies; pip installation alone does not perform this
+per-process setup. Calls are safe to repeat when a package is already loaded.
+
+If you use hepyy's source-install module system, its startup hook can perform
+the initialization before the script starts:
+
+```bash
+module load fastjet pythia8 fjcontrib
+python myscript.py
+```
+
+In that **module-loaded process**, `myscript.py` may import the packages directly:
+
+```python
+import fastjet, pythia8, fjcontrib
+```
+
+The explicit `hepyy.load(...)` form also works in that process and makes scripts
+usable from a normal activated environment without shell module setup.
 
 ### ROOT — PyROOT via native Python bindings
 
@@ -715,16 +735,25 @@ Demo scripts live in the `demos/` directory:
 | `demos/demo_fastjet.py` | Basic FastJet jet finding |
 | `demos/demo_pythia_fastjet.py` | Pythia8 + FastJet: event generation and jet clustering |
 | `demos/demo_pythia_fastjet.ipynb` | Same as above in a Jupyter notebook |
-| `demos/demo_pythia_fastjet_root.py` | Pythia8 + FastJet → ROOT TTree ntuple written to a .root file (requires root) |
+| `demos/demo_pythia_fastjet_root.py` | Pythia8 + FastJet → ROOT-format TTree (requires `uproot` and `numpy`) |
+| `demos/demo_pythia_fastjet_root_cppyy.py` | Pythia8 + FastJet → ROOT TTree using PyROOT (requires ROOT separately) |
 | `demos/demo_fjcontrib.py` | SoftDrop, Nsubjettiness τ₂₁, EnergyCorrelator C₂ on Pythia8 dijets |
 | `demos/demo_fjcontrib.ipynb` | Same as above in a Jupyter notebook with per-jet inspector table |
 | `demos/demo_softdrop_splitting.ipynb` | SoftDrop splitting function: $z_g$ and $\theta_g$ distributions ([open in Colab](https://colab.research.google.com/github/matplo/hepyy/blob/main/demos/demo_softdrop_splitting.ipynb)) |
 
-Run:
+After installing the [pip bundle](#pip-installable-hep-bundle), run:
+
 ```bash
-hepyy install fastjet pythia8 fjcontrib   # first time only
+python demos/demo_fastjet.py
+python demos/demo_pythia_fastjet.py
+python -m pip install matplotlib numpy  # plotting demos
 python demos/demo_fjcontrib.py
 ```
+
+The scripts initialize their required packages with `hepyy.load(...)` before
+importing them. In notebooks, run the initial load cell before the import cells,
+and rerun it after restarting the kernel. Source-installed packages also work;
+see [demo prerequisites and ROOT setup](demos/README.md) for optional dependencies.
 
 To get the latest demos after an upgrade (demos are not part of the installed package):
 ```bash

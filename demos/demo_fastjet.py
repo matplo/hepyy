@@ -10,10 +10,11 @@ Or, with the shell module system:
     python demo_fastjet.py
 """
 
-# Packages must be loaded before running. Either:
-#   module load fastjet          # autoload hook handles the rest
-# or uncomment:
-#   import hepyy; hepyy.load("fastjet")
+# Initialize native libraries and Python proxies before importing them.
+# Safe to repeat when shell modules have already loaded these packages.
+import hepyy
+hepyy.load('fastjet')
+
 import cppyy
 import fastjet
 

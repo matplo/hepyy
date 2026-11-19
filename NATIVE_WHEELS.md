@@ -27,6 +27,25 @@ local Apple Silicon checks also cover Python 3.14. Windows and Linux arm64 are
 not included in this wheel matrix. cppyy's JIT needs a compatible C++ toolchain.
 The base hepyy package and FastJet-only paths retain their own metadata.
 
+## Import order
+
+The native wheels provide libraries and headers. Call `hepyy.load()` once in
+each Python process or notebook kernel before importing their cppyy proxy
+modules:
+
+```python
+import hepyy
+hepyy.load("fastjet")
+import fastjet
+```
+
+For the whole bundle, use `hepyy.load("hepbundle")` before importing `fastjet`,
+`fjcontrib`, `hepmc3` or `pythia8`. A bare `import fastjet` before initialization
+can raise `ModuleNotFoundError`; rerun the load cell after a kernel restart.
+The upstream `lhapdf` Python module and `lhapdf` command work directly.
+Source module users may already have these proxies initialized by the shell
+startup hook; explicit load calls remain safe in that case.
+
 Install PDF data before the example below:
 
 ```sh

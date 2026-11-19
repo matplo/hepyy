@@ -5,10 +5,11 @@ Run with:
     python demo_fjcontrib.py
 """
 
-# Packages must be loaded before running. Either:
-#   module load fastjet fjcontrib pythia8   # autoload hook handles the rest
-# or uncomment:
-#   import hepyy; hepyy.load("fastjet"); hepyy.load("fjcontrib"); hepyy.load("pythia8")
+# Initialize native libraries and Python proxies before importing them.
+# Safe to repeat when shell modules have already loaded these packages.
+import hepyy
+hepyy.load(['fastjet', 'fjcontrib', 'pythia8'])
+
 import cppyy
 import pythia8
 import fastjet

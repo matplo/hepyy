@@ -1,29 +1,27 @@
 """
-Demo: pip-cppyy (pythia8, fastjet) + ROOT TTree in the same session.
+Demo: Pythia8, FastJet and ROOT TTree using ROOT's shared cppyy runtime.
 
-Load order: cppyy packages first, then import ROOT.
-ROOT is used only for TFile/TTree output; generation and clustering
-stay entirely in pip-cppyy land — no object passing across cling contexts.
+ROOT initializes its cppyy/cling runtime first; FastJet and Pythia then use
+that same interpreter. Requires ROOT separately from the pip hepbundle, either
+installed through hepyy or importable from the active system/conda environment.
 
-NOTE: ROOT must be listed first (or alongside) other packages in module load.
-      hepyy's autoload always loads root first, so ROOT's bundled cppyy
-      becomes sys.modules['cppyy'] before fastjet/pythia8 are loaded — one
-      shared cling for everything. Without root in the environment, import ROOT
-      fails because ROOT's _facade._finalSetup cannot find ROOT's C++ namespace.
-
-Run:
-    module load root fastjet pythia8
+Run in an environment with ROOT and the native packages installed:
     python demo_pythia_fastjet_root_cppyy.py
 """
 
-# Packages must be loaded before running. Either:
-#   module load root fastjet pythia8   # autoload hook handles the rest
-# or uncomment:
-#   import hepyy; hepyy.load("fastjet"); hepyy.load("pythia8"); hepyy.load("root")
+# Establish ROOT's runtime before loading the other native libraries.
+import importlib.util
+import hepyy
+
+if importlib.util.find_spec("ROOT") is None:
+    hepyy.load("root")  # Expose a ROOT installation managed by hepyy.
+import ROOT
+
+hepyy.load(["fastjet", "pythia8"])
+
 import cppyy
 import pythia8
 import fastjet
-import ROOT
 
 PseudoJetVec = cppyy.gbl.std.vector[fastjet.PseudoJet]
 
