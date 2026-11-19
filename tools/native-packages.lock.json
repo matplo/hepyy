@@ -4,89 +4,89 @@
   "packages": {
     "fastjet": {
       "version": "3.5.3",
-      "wheel_version": "3.5.3.4",
+      "wheel_version": "3.5.3.5",
       "url": "http://fastjet.fr/repo/fastjet-3.5.3.tar.gz",
       "archive": "fastjet-3.5.3.tar.gz",
       "sha256": "279cce38e6ba01811b2f1913e582e50c3845acf68e97f92413ed45ac4bb8de9c",
       "recipe": "fastjet/3.5.3.yaml",
       "recipe_sha256": "e90b540a5a6765965f5149bcc903c04d1f61ab85ffaa09a8a1c7c40494aa7283",
-      "signature": "5b336e38a690a9cc2f06991c3f872917180ef1537df4d09667ad0c18d3c5d909",
-      "builder_sha256": "06d27f6f09f19521b355f1bf8ad696dd564a52582a7e8f575725070bb736c192",
-      "bundle_inputs": "33d5d29fcb661fa93f57a54f19511949834f5f67518a362b240b65998628d2d3",
-      "abi": "fastjet-3.5.3.4-cxx17-v1",
+      "signature": "f6552d14df9fa7264e245fcb2c3f2752b3ff1ba718dd60022e90301ecec9541a",
+      "builder_sha256": "d4ad4df65950f391022067954e8825580ae004a07a3bc4f65aef1850c60caf93",
+      "bundle_inputs": "fa836d8ea6d984714c3f430a27bd52f89cf9c60e96b2a72b7d02122c51f017eb",
+      "abi": "fastjet-3.5.3.5-cxx17-v1",
       "requires_native": {},
       "dependencies": {}
     },
     "fjcontrib": {
       "version": "1.105",
-      "wheel_version": "1.105.4",
+      "wheel_version": "1.105.5",
       "url": "https://fastjet.hepforge.org/contrib/downloads/fjcontrib-1.105.tar.gz",
       "archive": "fjcontrib-1.105.tar.gz",
       "sha256": "21ad3d62a53b24fc89819c2f8a2cb519d77cbc1ad56be7daae5994a611907bc2",
       "recipe": "fjcontrib/1.105.yaml",
       "recipe_sha256": "28c00f3fab6349c87f9afdff061f1b6696f2f528f71df7e7698b9c2367d21bc0",
-      "signature": "abaa090270883f4dc572046cc769a1e5472bd9b986bab973f587fb8c7d9946c1",
-      "builder_sha256": "06d27f6f09f19521b355f1bf8ad696dd564a52582a7e8f575725070bb736c192",
-      "bundle_inputs": "33d5d29fcb661fa93f57a54f19511949834f5f67518a362b240b65998628d2d3",
-      "abi": "fjcontrib-1.105.4-cxx17-v1",
+      "signature": "0fa791b97092f790df13195df061ca7bd45ee4e03db894478992b639cd171c8f",
+      "builder_sha256": "d4ad4df65950f391022067954e8825580ae004a07a3bc4f65aef1850c60caf93",
+      "bundle_inputs": "fa836d8ea6d984714c3f430a27bd52f89cf9c60e96b2a72b7d02122c51f017eb",
+      "abi": "fjcontrib-1.105.5-cxx17-v1",
       "requires_native": {
-        "fastjet": "fastjet-3.5.3.4-cxx17-v1"
+        "fastjet": "fastjet-3.5.3.5-cxx17-v1"
       },
       "dependencies": {
-        "fastjet": "3.5.3.4"
+        "fastjet": "3.5.3.5"
       }
     },
     "hepmc3": {
       "version": "3.3.1",
-      "wheel_version": "3.3.1.4",
+      "wheel_version": "3.3.1.5",
       "url": "https://hepmc.web.cern.ch/hepmc/releases/HepMC3-3.3.1.tar.gz",
       "archive": "HepMC3-3.3.1.tar.gz",
       "sha256": "08240160b0f28dc3293aa4d61ce65e2d67cd597acf6faca439f2e46625f7e793",
       "recipe": "hepmc3/3.3.1.yaml",
       "recipe_sha256": "5a8b1e3fb8f93d0a0442d6269fdee0716aced119d71a4c07b11844f7e9f0dea1",
-      "signature": "7609c589e8cb928a3294e7d7571563cf64a4b47da6853cabeb367a3ae8a9d20d",
-      "builder_sha256": "06d27f6f09f19521b355f1bf8ad696dd564a52582a7e8f575725070bb736c192",
-      "bundle_inputs": "33d5d29fcb661fa93f57a54f19511949834f5f67518a362b240b65998628d2d3",
-      "abi": "hepmc3-3.3.1.4-cxx17-v1",
+      "signature": "efc5e58018b1314f3694037218c355f1c79ab466c9dc5a0a8cfc23eca3bc4a1e",
+      "builder_sha256": "d4ad4df65950f391022067954e8825580ae004a07a3bc4f65aef1850c60caf93",
+      "bundle_inputs": "fa836d8ea6d984714c3f430a27bd52f89cf9c60e96b2a72b7d02122c51f017eb",
+      "abi": "hepmc3-3.3.1.5-cxx17-v1",
       "requires_native": {},
       "dependencies": {}
     },
     "lhapdf": {
       "version": "6.5.5",
-      "wheel_version": "6.5.5.4",
+      "wheel_version": "6.5.5.5",
       "url": "https://lhapdf.hepforge.org/downloads/?f=LHAPDF-6.5.5.tar.gz",
       "archive": "LHAPDF-6.5.5.tar.gz",
       "sha256": "641d5ea0942b79e4447e15e5a33491ff3c7032d71d618119935e14ad27f5e3a5",
       "recipe": "lhapdf/6.5.5.yaml",
       "recipe_sha256": "2e9383b4be1456416c733e9ef509c54833389eace82028d82601ad5e65ab7bc9",
-      "signature": "86b4515e65fde4e4ed94502a478ce52f3da64302026b3736dff2e1ff505feb8a",
-      "builder_sha256": "06d27f6f09f19521b355f1bf8ad696dd564a52582a7e8f575725070bb736c192",
-      "bundle_inputs": "33d5d29fcb661fa93f57a54f19511949834f5f67518a362b240b65998628d2d3",
-      "abi": "lhapdf-6.5.5.4-cxx17-v1",
+      "signature": "249e73420d7465602126833d362d7385292d1872e8b9f1293d230ad3ce2c8290",
+      "builder_sha256": "d4ad4df65950f391022067954e8825580ae004a07a3bc4f65aef1850c60caf93",
+      "bundle_inputs": "fa836d8ea6d984714c3f430a27bd52f89cf9c60e96b2a72b7d02122c51f017eb",
+      "abi": "lhapdf-6.5.5.5-cxx17-v1",
       "requires_native": {},
       "dependencies": {}
     },
     "pythia8": {
       "version": "8.317",
-      "wheel_version": "8.317.5",
+      "wheel_version": "8.317.6",
       "url": "https://pythia.org/releases/pythia83/pythia8317.tgz",
       "archive": "pythia8317.tgz",
       "sha256": "1ae551d14dac495ddfe6b344792035ebe410fe6c6004d44a335e0ece0e745adf",
       "recipe": "pythia8/8.317.yaml",
       "recipe_sha256": "a256aa85133cbb5f9f9a8a52008722eec7642094aa4b0fbda49438dcad746f62",
-      "signature": "ead9dda849c9dfc59d82a235cfef9140cc8e4f719a99367653ca05b3a51fec1b",
-      "builder_sha256": "06d27f6f09f19521b355f1bf8ad696dd564a52582a7e8f575725070bb736c192",
-      "bundle_inputs": "33d5d29fcb661fa93f57a54f19511949834f5f67518a362b240b65998628d2d3",
-      "abi": "pythia8-8.317.5-cxx17-v1",
+      "signature": "5953cc6373f56b635496b1732681613d03938671899b5dbdfe90b9b5d862b4c9",
+      "builder_sha256": "d4ad4df65950f391022067954e8825580ae004a07a3bc4f65aef1850c60caf93",
+      "bundle_inputs": "fa836d8ea6d984714c3f430a27bd52f89cf9c60e96b2a72b7d02122c51f017eb",
+      "abi": "pythia8-8.317.6-cxx17-v1",
       "requires_native": {
-        "fastjet": "fastjet-3.5.3.4-cxx17-v1",
-        "hepmc3": "hepmc3-3.3.1.4-cxx17-v1",
-        "lhapdf": "lhapdf-6.5.5.4-cxx17-v1"
+        "fastjet": "fastjet-3.5.3.5-cxx17-v1",
+        "hepmc3": "hepmc3-3.3.1.5-cxx17-v1",
+        "lhapdf": "lhapdf-6.5.5.5-cxx17-v1"
       },
       "dependencies": {
-        "fastjet": "3.5.3.4",
-        "hepmc3": "3.3.1.4",
-        "lhapdf": "6.5.5.4"
+        "fastjet": "3.5.3.5",
+        "hepmc3": "3.3.1.5",
+        "lhapdf": "6.5.5.5"
       }
     }
   }

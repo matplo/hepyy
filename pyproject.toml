@@ -51,13 +51,13 @@ dependencies = [
 # backend/cling/CPyCppyy trio, which must all match exactly. Plain venv/Colab
 # users with no cppyy at all should install with the 'cppyy' extra.
 [project.optional-dependencies]
-hepbundle = ["hepyy-fastjet==3.5.3.4", "hepyy-fjcontrib==1.105.4", "hepyy-hepmc3==3.3.1.4", "hepyy-lhapdf==6.5.5.4", "hepyy-pythia8==8.317.5"]
-lhapdf = ["hepyy-lhapdf==6.5.5.4"]
-hepmc3 = ["hepyy-hepmc3==3.3.1.4"]
+hepbundle = ["hepyy-fastjet==3.5.3.5", "hepyy-fjcontrib==1.105.5", "hepyy-hepmc3==3.3.1.5", "hepyy-lhapdf==6.5.5.5", "hepyy-pythia8==8.317.6"]
+lhapdf = ["hepyy-lhapdf==6.5.5.5"]
+hepmc3 = ["hepyy-hepmc3==3.3.1.5"]
 cppyy = ["cppyy>=3.1"]
-fastjet = ["hepyy-fastjet==3.5.3.4"]
-fjcontrib = ["hepyy-fjcontrib==1.105.4"]
-pythia8 = ["hepyy-pythia8==8.317.5"]
+fastjet = ["hepyy-fastjet==3.5.3.5"]
+fjcontrib = ["hepyy-fjcontrib==1.105.5"]
+pythia8 = ["hepyy-pythia8==8.317.6"]
 
 [project.urls]
 Homepage = "https://github.com/matplo/hepyy"
