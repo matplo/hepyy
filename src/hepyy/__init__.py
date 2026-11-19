@@ -1,7 +1,7 @@
 from .loader import get_loader
 from .registry import get_registry
 
-__version__ = "0.1.0"
+__version__ = "0.2.31"
 
 
 class _ModuleProxy:
