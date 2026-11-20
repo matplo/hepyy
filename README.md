@@ -170,57 +170,50 @@ pip install hepyy
 
 ## Google Colab
 
-hepyy works in [Google Colab](https://colab.research.google.com) without any local setup.
-Use `!` to run shell commands from a notebook cell:
+In a fresh [Google Colab](https://colab.research.google.com) runtime, install the
+full HEP bundle directly from PyPI:
 
 ```python
-# Cell 1 — install hepyy (Colab has no cppyy preinstalled, so use the [cppyy] extra)
-!pip install "hepyy[cppyy] @ git+https://github.com/matplo/hepyy.git"
-
-# Cell 2 — initialise (creates package store, patches cppyy)
-!hepyy init
-
-# Cell 3 — build HEP packages (~10–20 min first time; Colab has 2+ cores)
-!hepyy install fastjet hepmc3 lhapdf pythia8 fjcontrib --verbose
-
-# Cell 4 — use them
-import hepyy
-hepyy.load('fastjet')
-hepyy.load('fjcontrib')
-hepyy.load('pythia8')
-
-import cppyy, pythia8, fastjet, fjcontrib
-# → ready to use
+# Cell 1 — install cppyy and the native HEP wheels
+!pip install "hepyy[cppyy,hepbundle]>=0.2.31"
 ```
 
-**Notes:**
-- Each Colab runtime is ephemeral — packages must be reinstalled when the runtime resets.
-  The build takes ~10–20 min; avoid rebuilding every session by building once to persistent
-  storage (e.g. a mounted Drive folder) with `--to`, then reusing it in any future session:
-  ```python
-  # Session 1 — build once, straight to persistent storage
-  from google.colab import drive
-  drive.mount('/content/drive')
-  !heyy install fastjet hepmc3 lhapdf pythia8 fjcontrib --to /content/drive/MyDrive/hepyy_packages --verbose
+Then initialize the packages in the notebook before importing their Python
+proxies:
 
-  # Session 2+ — any future runtime, no rebuild
-  from google.colab import drive
-  drive.mount('/content/drive')
-  !heyy registry --add /content/drive/MyDrive/hepyy_packages/registry.json
-  ```
-  `--to <folder>` makes `<folder>` a self-contained packages dir just for that install
-  (its own `<folder>/<name>/<version>/` layout and `<folder>/registry.json`) — it doesn't
-  touch this instance's own registry. `heyy registry --add` then imports it wholesale into
-  whichever fresh instance runs it, no per-package `hepyy register` calls needed.
-- `--verbose` shows live build output, which is useful in Colab to confirm progress.
-- After `hepyy init`, download the latest demo notebooks with:
-  ```
-  !hepyy demos
-  ```
-  This fetches all demo files from GitHub into `./hepyy_demos/`. Re-run after
-  `heyy upgrade` to pick up new or updated demos.
-- See `demos/demo_softdrop_splitting.ipynb` for a complete worked example you can open
-  directly in Colab.
+```python
+# Cell 2 — load and use the bundle
+import hepyy
+hepyy.load("hepbundle")
+
+import fastjet, fjcontrib, hepmc3, lhapdf, pythia8
+```
+
+See the [Colab example: Pythia8 → FastJet → fjcontrib SoftDrop](https://colab.research.google.com/drive/1siEP5XOsiuTL9yuKM950P53abxQ06cfZ?usp=sharing),
+which uses pip installation followed by the same analysis as the demos.
+Rerun the install cell for a new Colab runtime, and the load cell after a kernel
+restart.
+
+**Slower alternative — source installation:** the source-build workflow remains
+supported and should also work in Colab. Use a fresh runtime for this alternative;
+it compiles the HEP packages instead of installing their wheels:
+
+```python
+!pip install "hepyy[cppyy]>=0.2.31"
+!heyy init
+!heyy install fastjet hepmc3 lhapdf pythia8 fjcontrib --verbose
+```
+
+After building, load the source-installed packages explicitly:
+
+```python
+import hepyy
+hepyy.load(["fastjet", "hepmc3", "lhapdf", "pythia8", "fjcontrib"])
+import fastjet, fjcontrib, hepmc3, lhapdf, pythia8
+```
+
+See the [Colab source-build and Drive-cache workflow](WORKFLOW-EXAMPLE.md#2-google-colab-ephemeral-runtime--google-drive-cache)
+for reusing source installations across sessions.
 
 ---
 
