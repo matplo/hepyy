@@ -748,7 +748,10 @@ importing them. In notebooks, run the initial load cell before the import cells,
 and rerun it after restarting the kernel. Source-installed packages also work;
 see [demo prerequisites and ROOT setup](demos/README.md) for optional dependencies.
 
-To get the latest demos after an upgrade (demos are not part of the installed package):
+Downloaded demos are separate from the installed Python package. Upgrading
+hepyy with pip does not replace files in an existing `hepyy_demos/` directory.
+`heyy demos` fetches from GitHub `main` and preserves existing files by default;
+use `--overwrite` to refresh them after a demo fix:
 ```bash
 heyy demos                # downloads all demos into ./hepyy_demos/
 heyy demos --overwrite    # re-download even if files already exist
