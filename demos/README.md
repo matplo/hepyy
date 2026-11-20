@@ -8,12 +8,16 @@ python demos/demo_fastjet.py
 python demos/demo_pythia_fastjet.py
 ```
 
-To download the current demos using an installed hepyy:
+To download or refresh the current demos using an installed hepyy (including
+hepyy 0.2.31):
 
 ```sh
 heyy demos --overwrite
 python hepyy_demos/demo_fastjet.py
 ```
+
+The downloader reads GitHub `main`. Existing downloaded files are preserved
+unless `--overwrite` is supplied, and pip upgrades do not replace those files.
 
 ## Initialize before importing
 
