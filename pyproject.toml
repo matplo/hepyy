@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hepyy"
-version = "0.2.33"
+version = "0.2.34"
 description = "HEP C++ package manager with cppyy dynamic bindings"
 readme = "README.md"
 license = { text = "MIT" }
@@ -58,7 +58,7 @@ cppyy = ["cppyy>=3.1"]
 fastjet = ["hepyy-fastjet==3.5.3.5"]
 fjcontrib = ["hepyy-fjcontrib==1.105.5"]
 pythia8 = ["hepyy-pythia8==8.317.6"]
-jewel-cpp = ["hepyy-jewel-cpp==0.2.0.1"]
+jewel-cpp = ["hepyy-jewel-cpp==0.2.0.2"]
 
 [project.urls]
 Homepage = "https://github.com/matplo/hepyy"
