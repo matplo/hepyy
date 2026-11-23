@@ -1,11 +1,19 @@
 """Fail a public hepyy release if its pinned native platform wheels are absent."""
 import json
+import tomllib
 import urllib.request
 
 from pathlib import Path
-lock = json.loads(Path(__file__).with_name('native-packages.lock.json').read_text())
-for name, record in lock['packages'].items():
-    version = record['wheel_version']
+tools = Path(__file__).resolve().parent
+lock = json.loads((tools / 'native-packages.lock.json').read_text())
+pins = {name: record['wheel_version'] for name, record in lock['packages'].items()}
+pyproject = tomllib.loads((tools.parent / 'pyproject.toml').read_text())
+requirement, = pyproject['project']['optional-dependencies']['jewel-cpp']
+distribution, version = requirement.split('==', 1)
+assert distribution == 'hepyy-jewel-cpp'
+pins['jewel-cpp'] = version
+
+for name, version in pins.items():
     with urllib.request.urlopen(f'https://pypi.org/pypi/hepyy-{name}/{version}/json', timeout=30) as response:
         data = json.load(response)
     files = [f['filename'] for f in data['urls'] if not f.get('yanked')]

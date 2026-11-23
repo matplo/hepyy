@@ -27,7 +27,21 @@ local Apple Silicon checks also cover Python 3.14. Windows and Linux arm64 are
 not included in this wheel matrix. cppyy's JIT needs a compatible C++ toolchain.
 The base hepyy package and FastJet-only paths retain their own metadata.
 
-## Local jewel-cpp wheel
+## JEWEL C++ wheel
+
+With cppyy available in the active environment, install the JEWEL C++ wheel
+and the hepbundle dependencies together:
+
+```sh
+python -m pip install 'hepyy[hepbundle,jewel-cpp]>=0.2.33'
+python -c 'import hepyy; hepyy.load("jewel_cpp"); import jewel_cpp'
+```
+
+The wheel reuses the pinned Pythia8 and LHAPDF wheels. Release builds test
+the installed FastJet script and notebook on Linux x86_64 and macOS arm64
+and Intel.
+
+### Build and install a local wheel
 
 From a jewel-cpp checkout in the build environment, run:
 
@@ -43,10 +57,6 @@ containing the built wheel:
 python -m pip install --find-links /path/to/jewel-cpp/dist '.[hepbundle,jewel-cpp]'
 python -c 'import hepyy; hepyy.load("jewel_cpp"); import jewel_cpp'
 ```
-
-The wheel reuses the Pythia8 and LHAPDF wheels it was built against. A working
-cppyy installation is needed in the runtime environment. The local build and
-both bundled FastJet examples were tested on macOS arm64.
 
 ## Import order
 
