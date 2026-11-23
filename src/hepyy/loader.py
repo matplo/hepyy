@@ -86,6 +86,8 @@ class Loader:
         if record is None:
             from .native import wheel_record
             record = wheel_record(name, version)
+            if record is not None:
+                name = record.get("name", name)
 
         if record is None:
             if install_if_missing:
@@ -124,8 +126,7 @@ class Loader:
             deps         = record.get("depends_on", [])
             python_paths = []
 
-        # Validate the selected dependency provider before dlopen. A wheel
-        # must not link a second FastJet alongside an already loaded source one.
+        # Check the native provider selected for each dependency before dlopen.
         if record.get("provider") == "wheel":
             from .native import validate_dependencies, wheel_record
             selected = {}

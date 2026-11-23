@@ -27,6 +27,27 @@ local Apple Silicon checks also cover Python 3.14. Windows and Linux arm64 are
 not included in this wheel matrix. cppyy's JIT needs a compatible C++ toolchain.
 The base hepyy package and FastJet-only paths retain their own metadata.
 
+## Local jewel-cpp wheel
+
+From a jewel-cpp checkout in the build environment, run:
+
+```sh
+python -m pip install 'hepyy[hepbundle]' wheel
+python tools/build_hepyy_wheel.py --output dist
+```
+
+From the hepyy checkout in the runtime environment, use the directory
+containing the built wheel:
+
+```sh
+python -m pip install --find-links /path/to/jewel-cpp/dist '.[hepbundle,jewel-cpp]'
+python -c 'import hepyy; hepyy.load("jewel_cpp"); import jewel_cpp'
+```
+
+The wheel reuses the Pythia8 and LHAPDF wheels it was built against. A working
+cppyy installation is needed in the runtime environment. The local build and
+both bundled FastJet examples were tested on macOS arm64.
+
 ## Import order
 
 The native wheels provide libraries and headers. Call `hepyy.load()` once in
@@ -81,7 +102,11 @@ Python interpreter, or second FastJet/LHAPDF core is bundled.
 
 Shell-selected source packages and the source registry retain precedence.
 Wheel plugins reject incompatible selected source/shell dependencies before
-loading. Wheel discovery writes no registry entries. Use pip to uninstall wheel
+loading. When no source install is selected, the loader checks for an installed
+distribution named `hepyy-<package>` and reads its
+`hepyy_<package>/manifest.json` on demand. Use underscores in the payload path
+and set the manifest's `name` to the Python import name. Wheel discovery writes
+no registry entries. Use pip to uninstall wheel
 payloads; registry CLI listings continue to describe source installations.
 Use fresh environments for this stack rather than combining unrelated native
 FastJet, Pythia, LHAPDF or HepMC distributions that own the same modules/libraries.

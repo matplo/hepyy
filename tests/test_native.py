@@ -63,6 +63,27 @@ def test_metadata_version_mismatch(payload):
         native.wheel_record('fastjet')
 
 
+def test_discover_additional_native_wheel_by_distribution_name(tmp_path, monkeypatch, loader):
+    prefix = tmp_path / 'hepyy_example_plugin'
+    prefix.mkdir()
+    (prefix / 'manifest.json').write_text(json.dumps(dict(
+        schema_version=1, name='example_plugin', version='1.0',
+        distribution_version='1.0.1', headers=['example.hpp'],
+        libraries=['example'], cppyy_namespace='example',
+    )))
+    dist = Mock(version='1.0.1')
+    dist.locate_file.side_effect = lambda name: tmp_path / name
+    discover = Mock(return_value=dist)
+    monkeypatch.setattr(native.metadata, 'distribution', discover)
+
+    obj, reg = loader
+    obj.load('example-plugin')
+    discover.assert_called_once_with('hepyy-example-plugin')
+    obj._inject_proxy_module.assert_called_once_with('example_plugin', 'example')
+    assert obj._loaded_records['example_plugin']['provider'] == 'wheel'
+    assert not reg._path.exists()
+
+
 def test_source_registry_precedes_wheel(payload, loader):
     obj, reg = loader
     reg.register('fastjet', '3.5.1', dict(version='3.5.1', prefix='/source',
