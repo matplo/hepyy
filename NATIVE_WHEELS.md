@@ -58,7 +58,20 @@ python -m pip install --find-links /path/to/jewel-cpp/dist '.[hepbundle,jewel-cp
 python -c 'import hepyy; hepyy.load("jewel_cpp"); import jewel_cpp'
 ```
 
-## Local Glauber CLI wheel
+## Glauber CLI wheel
+
+Install the standalone Pb–Pb generator from PyPI with hepyy 0.2.35 or newer:
+
+```sh
+python -m pip install 'hepyy[glauber-cpp]>=0.2.35'
+glauber-pbpb pbpb-5020 6000 72913
+```
+
+The extra installs `glauber-pbpb` into the environment’s command directory.
+The CLI needs only the platform’s C++ runtime. In the JEWEL C++ runner, use
+`--centrality 0 10 --glauber-events pbpb-5020/events.csv` for a central Pb–Pb run.
+
+### Build and install a local Glauber wheel
 
 From a `glauber-cpp` checkout, build the standalone command as a wheel:
 
@@ -72,10 +85,6 @@ From the hepyy checkout, install the extra using the local wheel directory:
 python -m pip install --find-links /path/to/glauber-cpp/dist '.[glauber-cpp]'
 glauber-pbpb pbpb-5020 6000 72913
 ```
-
-The extra installs `glauber-pbpb` into the environment’s command directory.
-The CLI needs only the platform’s C++ runtime. In the JEWEL C++ runner, use
-`--centrality 0 10 --glauber-events pbpb-5020/events.csv` for a central Pb–Pb run.
 
 ## Import order
 
