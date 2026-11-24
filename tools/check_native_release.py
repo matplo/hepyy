@@ -8,10 +8,12 @@ tools = Path(__file__).resolve().parent
 lock = json.loads((tools / 'native-packages.lock.json').read_text())
 pins = {name: record['wheel_version'] for name, record in lock['packages'].items()}
 pyproject = tomllib.loads((tools.parent / 'pyproject.toml').read_text())
-requirement, = pyproject['project']['optional-dependencies']['jewel-cpp']
-distribution, version = requirement.split('==', 1)
-assert distribution == 'hepyy-jewel-cpp'
-pins['jewel-cpp'] = version
+extras = pyproject['project']['optional-dependencies']
+for name in ('jewel-cpp', 'glauber-cpp'):
+    requirement, = extras[name]
+    distribution, version = requirement.split('==', 1)
+    assert distribution == f'hepyy-{name}'
+    pins[name] = version
 
 for name, version in pins.items():
     with urllib.request.urlopen(f'https://pypi.org/pypi/hepyy-{name}/{version}/json', timeout=30) as response:
